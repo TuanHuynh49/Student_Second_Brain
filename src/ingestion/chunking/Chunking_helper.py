@@ -5,6 +5,8 @@ from src.models.DocumentChunk import ParentChunk,ChildChunk
 import json 
 from typing import Optional
 import re
+from datetime import datetime
+
 def loaddoc(filename:str)->Document:
         retrivePath=f"data/raw/{filename}"
         path=Path(retrivePath)
@@ -15,7 +17,9 @@ def loaddoc(filename:str)->Document:
             content=text,
             source=retrivePath,
             title=path.stem,
-            docType=path.suffix
+            metadata={
+                "docType":path.suffix
+            }
         )
 def markdownChunkingParent(doc:Document)->list[ParentChunk]:
     parents=[]
@@ -65,7 +69,8 @@ def normalTextSentenceChunking(doc: Document,max_tk: int = 900,overlap: int = 15
                 section=contentreal[:30],
                 parent_index=idx,
                 content=contentreal,
-                doc_id=doc.doc_id
+                doc_id=doc.doc_id,
+                metadata={**doc.metadata,"parentSize":len(contentreal)}
             )
 
             parents.append(parent)
@@ -101,7 +106,9 @@ def normalTextSentenceChunking(doc: Document,max_tk: int = 900,overlap: int = 15
             section=contentreal[:30],
             parent_index=idx,
             content=contentreal,
-            doc_id=doc.doc_id
+            doc_id=doc.doc_id,
+            metadata={**doc.metadata,"parentSize":len(contentreal)}
+
         )
 
         parents.append(parent)
@@ -112,51 +119,88 @@ def headerCheck(doc: Document) -> bool:
     return match is not None
      
 def ParentChunking(doc:Document,parent_max:int=1500,parent_overlap:int=150):          
-        if doc.docType==".md":
+        if doc.metadata.get("docType")==".md":
             if headerCheck(doc):
                return markdownChunkingParent(doc)
             else:
                 normalTextSentenceChunking(doc)
-        elif doc.docType==".txt":
+        elif doc.metadata.get("docType")==".txt":
           return normalTextSentenceChunking(doc,parent_max,parent_overlap)
         else:
           return None
 
 
-def ChildChunking(parent: ParentChunk,child_max: int = 600,child_overlap: int = 80) -> list[ChildChunk]:
+def ChildChunking(
+    parent: ParentChunk,
+    child_max: int = 600,
+    child_overlap: int = 80
+) -> list[ChildChunk]:
 
     children: list[ChildChunk] = []
 
+    if child_max <= 0:
+        raise ValueError("child_max must be > 0")
+
+    if not 0 <= child_overlap < child_max:
+        raise ValueError("Invalid child_overlap")
+
     sentences = [
         s.strip()
-        for s in re.split(r"(?<=[.!?])\s+|\n+", parent.content)
+        for s in re.split(
+            r"(?<=[.!?])\s+|\n+",
+            parent.content
+        )
         if s.strip()
     ]
 
     buffer: list[str] = []
     count = 0
 
+    def save_child(content: str) -> None:
+        child = ChildChunk(
+            content=content,
+            doc_id=parent.doc_id,
+            chunk_index=len(children),
+            parent_id=parent.parent_id,
+            metadata={
+                "create_date": datetime.now(),
+                "size": len(content)
+            }
+        )
+        children.append(child)
+
     for sentence in sentences:
         sentence_len = len(sentence)
 
+        # Xử lý câu dài hơn giới hạn
+        if sentence_len > child_max:
+            if buffer:
+                save_child(" ".join(buffer))
+                buffer = []
+                count = 0
+
+            start = 0
+            step = child_max - child_overlap
+
+            while start < sentence_len:
+                piece = sentence[start:start + child_max]
+                save_child(piece)
+                start += step
+
+            continue
+
+        # Nếu thêm câu mới vượt giới hạn
         if buffer and count + 1 + sentence_len > child_max:
-            content = " ".join(buffer)
+            save_child(" ".join(buffer))
 
-            child = ChildChunk(
-                content=content,
-                doc_id=parent.doc_id,
-                chunk_index=len(children),
-                parent_id= parent.parent_id,
-                
-            )
-
-            children.append(child)
-
+            # Giữ các câu cuối để tạo overlap
             new_buffer: list[str] = []
             overlap_count = 0
 
             for old_sentence in reversed(buffer):
-                extra = len(old_sentence) + (1 if new_buffer else 0)
+                extra = len(old_sentence) + (
+                    1 if new_buffer else 0
+                )
 
                 if overlap_count + extra > child_overlap:
                     break
@@ -167,42 +211,28 @@ def ChildChunking(parent: ParentChunk,child_max: int = 600,child_overlap: int = 
             buffer = new_buffer
             count = len(" ".join(buffer))
 
-
-        if not buffer and sentence_len > child_max:
-            start = 0
-
-            while start < sentence_len:
-                piece = sentence[start:start + child_max]
-
-                child = ChildChunk(
-                    content=content,
-                    doc_id=parent.doc_id,
-                    hunk_index=len(children),
-                    parent_id= parent.parent_id,
-                )
-
-                children.append(child)
-                start += max(1, child_max - child_overlap)
-
-            continue
+            # Không để chunk vượt quá child_max
+            if buffer and count + 1 + sentence_len > child_max:
+                buffer = []
+                count = 0
 
         buffer.append(sentence)
         count = len(" ".join(buffer))
 
+    # Lưu phần còn lại
     if buffer:
-        content = " ".join(buffer)
-
-        child = ChildChunk(
-            content=content,
-            doc_id=parent.doc_id,
-            chunk_index=len(children),
-            parent_id= parent.parent_id,
-            
-        )
-
-        children.append(child)
+        save_child(" ".join(buffer))
 
     return children
+
+if __name__=="__main__":
+    res=loaddoc("test.txt")
+    res=ParentChunking(res)
+    for i in res:
+        print(json.dumps(asdict(i),indent=3,default=str))
+        for j in ChildChunking(i):
+            print(json.dumps(asdict(j),indent=3,default=str))
+    
           
           
           
