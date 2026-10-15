@@ -1,0 +1,30 @@
+DOCUMENT ID: DOC0009
+TITLE: Execution Logs and Usage Tracking
+SUBJECT: AI with Python
+WEEK: 7
+VERSION: 1.0
+OWNER: course_team
+
+LEARNING OBJECTIVES
+
+Record agent runs so that failures and answers can be reproduced and inspected.
+
+CORE CONCEPTS
+
+A JSON Lines (JSONL) file stores one independent JSON object per line. It is convenient for recording multiple events or runs without requiring one large JSON array.
+
+Each run log should include a timestamp, run identifier, user question, executed steps, tool names, arguments, results, and final answer. Errors and verification outcomes should also be recorded.
+
+Usage tracking should record the number of tool calls and, when available, prompt and completion token counts. If a model provider does not expose token usage, the system should mark it as unavailable rather than inventing a value.
+
+Logs should avoid secrets such as API keys and should not unnecessarily store sensitive user information.
+
+The project requires at least three real execution logs. Each should show what the system actually did, not merely a manually written example.
+
+APPLICATION TO STUDENT SECOND BRAIN
+
+Run logs support debugging, evaluation, and the final project report. They help explain why a response was produced and whether a write action was verified.
+
+KEY TAKEAWAY
+
+Logs should be structured, truthful, reproducible, and safe to share. Distinguish measured usage from unavailable metrics.

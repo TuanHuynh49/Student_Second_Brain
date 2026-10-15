@@ -1,0 +1,42 @@
+DOCUMENT ID: DOC0010
+TITLE: Student Second Brain Project Requirements
+SUBJECT: AI with Python
+WEEK: 7
+VERSION: 1.0
+OWNER: course_team
+
+PROJECT OBJECTIVE
+
+Build a learning assistant that uses course lesson plans as a knowledge base. It should retrieve information, transform retrieved knowledge into useful answers, and perform controlled actions that change stored knowledge.
+
+REQUIRED CAPABILITIES
+
+1. RETRIEVAL
+
+The system loads course materials, chunks the content, preserves metadata, and retrieves relevant passages. Answers must cite their sources. The retrieval layer should support dense and hybrid retrieval as specified by the project.
+
+2. TRANSFORMATION
+
+The assistant can summarize a lesson, compare topics, and synthesize information from multiple sources. Important claims must remain grounded in retrieved documents.
+
+3. ACTION
+
+The assistant can save or update a note. After a write, it must use a read operation to verify that the change actually occurred.
+
+DATA AND TOOL REQUIREMENTS
+
+Documents should preserve identifiers, titles, versions or dates, owners, and useful course metadata. The MCP server must expose at least two tools, including a write tool, over stdio transport. The client should dynamically discover tools.
+
+The handwritten agent loop must enforce MAX_STEPS = 5 and handle tool errors safely.
+
+EVALUATION AND DELIVERABLES
+
+The test set must contain at least 12 questions, including at least four questions that cannot be answered from the available documents.
+
+The repository should include a README, ai-usage.md, a reproducible setup and demo command, and at least three real JSONL execution logs. Usage records should include tool calls and available token counts.
+
+The final report should be approximately 8–9 pages. An optional extension is to add a second host/client or a graph visualization with CSV logs.
+
+KEY TAKEAWAY
+
+The project is not only a question-answering chatbot. It must combine retrieval, knowledge transformation, verified actions, evaluation, and reproducible execution.

@@ -1,0 +1,32 @@
+DOCUMENT ID: DOC0008
+TITLE: Model Context Protocol (MCP)
+SUBJECT: AI with Python
+WEEK: 7
+VERSION: 1.0
+OWNER: course_team
+
+LEARNING OBJECTIVES
+
+Expose application capabilities as MCP tools and let a client discover and call them.
+
+CORE CONCEPTS
+
+Model Context Protocol (MCP) is a protocol for connecting AI applications to external tools and context providers. An MCP server exposes capabilities, while an MCP client discovers and invokes them.
+
+A tool should have a clear name, description, input schema, and return value. Typed function parameters can describe inputs and help the client understand how to call the tool.
+
+For this project, the MCP server should provide at least two tools, including at least one write operation. Example capabilities are search, get, and save_note.
+
+The client should discover available tools dynamically instead of assuming that every tool name is permanently available. The server should validate inputs and return understandable errors.
+
+The project uses standard input/output (stdio) transport for local MCP communication. Diagnostic logs should go to standard error or a log file rather than corrupting the protocol stream on standard output.
+
+A write operation should be verified. For example, after saving a note, the client can call a read tool to confirm that the saved content exists.
+
+APPLICATION TO STUDENT SECOND BRAIN
+
+The MCP server acts as the interface between the agent and the knowledge system. Search and read operations support retrieval, while save operations support durable knowledge management.
+
+KEY TAKEAWAY
+
+MCP provides a standardized interface for tool discovery and execution. Validate inputs and verify important side effects.
