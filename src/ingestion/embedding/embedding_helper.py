@@ -1,4 +1,4 @@
-from jina_embeddings import jina_embeddings
+from src.ingestion.embedding.jina_embeddings import jina_embeddings
 import os 
 from rich import print 
 from dotenv import load_dotenv
