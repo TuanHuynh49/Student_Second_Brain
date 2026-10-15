@@ -4,7 +4,7 @@ import logging
 from mcp.server.mcpserver import MCPServer
 
 from logger import setup_logger
-from utils.utils import normalize_text, is_empty, create_doc_id
+from utils import normalize_text, is_empty
 
 
 mcp = MCPServer(
@@ -101,33 +101,37 @@ def get(doc_id: str) -> str:
     
 
 
+
 @mcp.tool()
-def save(title: str, content: str) -> str:
-    """Save a new mock document."""
+def update(doc_id: str, title: str, content: str) -> str:
+    """Update an existing mock document."""
+    doc_id = normalize_text(doc_id)
     title = normalize_text(title)
     content = normalize_text(content)
 
+    if is_empty(doc_id):
+        logger.warning("update rejected: empty doc_id")
+        return "Error: doc_id must not be empty."
+
+    if doc_id not in DOCUMENTS:
+        logger.warning("update rejected: document not found: %s", doc_id)
+        return f"Error: document not found: {doc_id}"
+
     if is_empty(title):
-        logger.warning("save rejected: empty title")
+        logger.warning("update rejected: empty title")
         return "Error: title must not be empty."
 
     if is_empty(content):
-        logger.warning("save rejected: empty content")
+        logger.warning("update rejected: empty content")
         return "Error: content must not be empty."
 
-    doc_id = create_doc_id(DOCUMENTS)
+    DOCUMENTS[doc_id]["title"] = title
+    DOCUMENTS[doc_id]["content"] = content
 
-    DOCUMENTS[doc_id] = {
-        "doc_id": doc_id,
-        "title": title,
-        "content": content,
-        "source": "user_note",
-        "section": "Saved Notes"
-    }
+    logger.info("update doc_id=%s title=%r", doc_id, title)
 
-    logger.info("save doc_id=%s title=%r", doc_id, title)
+    return f"Updated successfully: {doc_id}"
 
-    return f"Saved successfully: {doc_id}"
 
     
 
