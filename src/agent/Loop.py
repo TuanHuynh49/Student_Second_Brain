@@ -4,9 +4,9 @@ from pathlib import Path
 
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 
-from LLM.client import call_llm
-from models.schemas import Tool
-from agent.memory import SlidingWindowMemory
+from LLM.Client import call_llm
+from models.Schemas import Tool
+from agent.Memory import SlidingWindowMemory
 
 def load_prompt(filename: str = "agent_react.txt") -> str:
     prompt_path = Path(__file__).resolve().parent.parent / "prompts" /filename
