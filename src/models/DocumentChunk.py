@@ -18,7 +18,7 @@ class ChildChunk:
     doc_id: str=None
     chunk_index: int = None
     metadata: dict = field(default_factory=dict)
-    embedding_matrix=Optional[list[float]]=None
+    embedding_matrix:Optional[list[float]]=None
 @dataclass
 class RetrievedChunk:
     parent: ParentChunk
