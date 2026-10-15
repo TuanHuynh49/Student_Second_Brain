@@ -1,0 +1,40 @@
+DOCUMENT ID: DOC0006
+TITLE: RAG Answering and Evaluation
+SUBJECT: AI with Python
+WEEK: 6
+VERSION: 1.0
+OWNER: course_team
+
+LEARNING OBJECTIVES
+
+Generate answers grounded in retrieved evidence and evaluate their quality.
+
+CORE CONCEPTS
+
+Retrieval-Augmented Generation (RAG) retrieves relevant passages and supplies them to a language model as context. The model then generates an answer based on the question and retrieved evidence.
+
+A grounded answer should distinguish supported facts from assumptions. Citations should identify the source document or passage that supports each important claim.
+
+If the retrieved evidence does not answer the question, the system should say that the available materials are insufficient rather than inventing an answer.
+
+Important evaluation dimensions include:
+
+Faithfulness: whether the answer is supported by the supplied evidence.
+
+Relevance: whether the answer addresses the user's question.
+
+Context precision: how much of the retrieved context is relevant.
+
+Citation quality: whether citations point to sources that actually support the claims.
+
+No-answer behavior: whether the system abstains when the corpus lacks sufficient evidence.
+
+A test set should contain answerable questions, multi-document questions, transformation questions, and unanswerable questions. Expected answers and relevant source IDs make evaluation more reproducible.
+
+APPLICATION TO STUDENT SECOND BRAIN
+
+Every knowledge answer should provide source references. The evaluation set should contain at least 12 questions, including at least four no_answer cases.
+
+KEY TAKEAWAY
+
+A fluent answer is not necessarily a correct answer. Evaluate evidence support, relevance, citations, and abstention behavior.
