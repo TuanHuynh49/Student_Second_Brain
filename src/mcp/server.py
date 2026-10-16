@@ -1,296 +1,316 @@
+import contextlib
+import sys
+import os
+from pathlib import Path
+import json
 
 from mcp.server.mcpserver import MCPServer
 
 from src.mcp.logger import setup_logger
 from src.mcp.utils import normalize_text, is_empty
-from src.mcp.document_manager import (
-    load_metadata,
-    save_metadata,
-    RAW_DIR,
-    PROJECT_ROOT,
-)
-from src.ingestion.retrieving.Retriever import retrieve
+from src.ingestion.chunking.Chunking_helper import loaddoc
 from src.models.VectorStore import VectorStore
-from src.ingestion.document_loader import load_documents
-
-mcp = MCPServer(
-    "student-second-brain",
-    description="Student Second Brain MCP server",
-)
-
-logger = setup_logger()
-logger.info("MCP Server started")
-
-
-def build_vector_store():
-    """Build a fresh search index from the persisted documents."""
-    new_store = VectorStore()
-
-    load_documents(
-        vector_store=new_store,
-        logger=logger,
-    )
-
-    return new_store
-
-vector_store = build_vector_store()
-
-def rebuild_vector_store():
-    """Replace the current search index after a successful update."""
-    global vector_store
-
-    new_store = build_vector_store()
-    vector_store = new_store
-
-    logger.info("Search index rebuilt successfully.")
-
-
-
-@mcp.tool()
-def search(query: str, k: int = 3) -> str:
-    """Search indexed documents by query."""
-
-    query = normalize_text(query).lower()
-
-    if is_empty(query):
-        return "Error: query must not be empty."
-
-    if k < 1:
-        return "Error: k must be at least 1."
-
-    try:
-        results = retrieve(
-            query,
-            store=vector_store,
-            top_k=k,
-        )
-
-        if not results:
-            return "No matching documents found."
-
-        output = []
-
-        for index, item in enumerate(results, start=1):
-            parent = item.parent
-
-            output.append(
-                f"Result {index}\n"
-                f"Score: {item.score:.4f}\n"
-                f"Document ID: {parent.doc_id}\n"
-                f"Source: {parent.source}\n"
-                f"Section: {parent.section}\n"
-                f"Content:\n{parent.content}"
-            )
-
-        logger.info(
-            "search query=%r results=%d",
-            query,
-            len(results),
-        )
-
-        return "\n\n---\n\n".join(output)
-
-    except Exception:
-        logger.exception("Search failed")
-        return "Error: search failed. Check the server logs."
+from src.ingestion.retrieving.Retriever import retrieve
+from src.models.Query import Query
 
 
 # ============================================================
-# TOOL 2: GET DOCUMENT
+# 1. CẤU HÌNH
+# ============================================================
+
+mcp = MCPServer("student-second-brain")
+logger = setup_logger()
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+RAW_DIR = PROJECT_ROOT / "data" / "raw"
+STORE_PATH = PROJECT_ROOT / "document_store_cache.json"
+
+
+# ============================================================
+# 2. LOAD / BUILD VECTOR STORE
+# ============================================================
+
+def get_raw_files_signature() -> dict[str, int]:
+    """
+    Lấy thời gian sửa đổi của các file TXT.
+    Nếu file thay đổi, signature sẽ thay đổi theo.
+    """
+    signature = {}
+
+    if not RAW_DIR.is_dir():
+        return signature
+
+    for file_path in sorted(RAW_DIR.glob("*.txt")):
+        relative_path = file_path.relative_to(PROJECT_ROOT).as_posix()
+        signature[relative_path] = file_path.stat().st_mtime_ns
+
+    return signature
+
+
+def build_vector_store() -> VectorStore:
+    """
+    Đọc các file TXT, tạo chunks và embeddings,
+    sau đó lưu VectorStore cùng signature của các file.
+    """
+    store = VectorStore()
+
+    if not RAW_DIR.is_dir():
+        logger.warning("Không tìm thấy thư mục: %s", RAW_DIR)
+        return store
+
+    old_cwd = Path.cwd()
+
+    try:
+        os.chdir(PROJECT_ROOT)
+
+        for file_path in sorted(RAW_DIR.glob("*.txt")):
+            try:
+                document = loaddoc(file_path.name)
+
+                if document is None:
+                    logger.warning("Không đọc được file: %s", file_path)
+                    continue
+
+                document.source = (
+                    file_path.relative_to(PROJECT_ROOT).as_posix()
+                )
+
+                store.add(document)
+                logger.info("Đã thêm tài liệu: %s", file_path.name)
+
+            except Exception:
+                logger.exception(
+                    "Lỗi khi xử lý file: %s", file_path.name
+                )
+
+    finally:
+        os.chdir(old_cwd)
+
+    STORE_PATH.parent.mkdir(parents=True, exist_ok=True)
+
+    # Lưu VectorStore trước.
+    with contextlib.redirect_stdout(sys.stderr):
+        store.save(str(STORE_PATH))
+
+    # Lưu thời gian sửa đổi của các file TXT vào cache.
+    with open(STORE_PATH, "r", encoding="utf-8") as file:
+        cache_data = json.load(file)
+
+    cache_data["_raw_files_signature"] = get_raw_files_signature()
+
+    with open(STORE_PATH, "w", encoding="utf-8") as file:
+        json.dump(cache_data, file, ensure_ascii=False, indent=4)
+
+    logger.info(
+        "Đã tạo cache: %s documents, %s child chunks",
+        len(store.documents),
+        len(store.child_chunks),
+    )
+
+    return store
+
+
+
+def load_vector_store() -> VectorStore:
+    """
+    Load cache nếu dữ liệu TXT chưa thay đổi.
+    Nếu TXT thay đổi hoặc chưa có cache thì xây dựng lại.
+    """
+    if not STORE_PATH.is_file():
+        logger.info("Chưa có cache, bắt đầu tạo VectorStore.")
+        return build_vector_store()
+
+    try:
+        with open(STORE_PATH, "r", encoding="utf-8") as file:
+            cache_data = json.load(file)
+
+        cached_signature = cache_data.get("_raw_files_signature")
+
+        current_signature = get_raw_files_signature()
+
+        if cached_signature != current_signature:
+            logger.info(
+                "File TXT đã thay đổi. Đang xây dựng lại VectorStore."
+            )
+            return build_vector_store()
+
+        logger.info("Đang tải VectorStore từ cache: %s", STORE_PATH)
+
+        with contextlib.redirect_stdout(sys.stderr):
+            return VectorStore.load(str(STORE_PATH))
+
+    except (OSError, json.JSONDecodeError, AttributeError, TypeError):
+        logger.exception("Cache không hợp lệ. Đang tạo lại VectorStore.")
+        return build_vector_store()
+
+
+with contextlib.redirect_stdout(sys.stderr):
+    vector_store = load_vector_store()
+
+
+# ============================================================
+# 3. HELPER
+# ============================================================
+
+
+def resolve_document_path(source: str) -> Path:
+    """
+    Chỉ cho phép đọc/ghi file nằm trong data/raw.
+    Ngăn đường dẫn thoát ra ngoài thư mục dữ liệu.
+    """
+    path = (PROJECT_ROOT / source).resolve()
+    raw_root = RAW_DIR.resolve()
+
+    if not path.is_relative_to(raw_root):
+        raise ValueError("Đường dẫn tài liệu không hợp lệ.")
+
+    if path.suffix.lower() != ".txt":
+        raise ValueError("Chỉ hỗ trợ tài liệu TXT.")
+
+    return path
+
+
+# ============================================================
+# 4. TOOL: SEARCH
+# ============================================================
+
+@mcp.tool()
+def search(query: str, top_k: int = 5) -> str:
+    """
+    Tìm kiếm các đoạn văn bản liên quan đến câu hỏi.
+    """
+    if is_empty(query):
+        return "Vui lòng nhập nội dung cần tìm kiếm."
+
+    try:
+        qr = Query(query, top_k)
+
+        results_chunk = []
+        results = retrieve(qr, vector_store)
+
+        for idx, res_chunk in enumerate(results, 1):
+                    results_chunk.append(
+                    f"[Kết quả {idx}] Score: {res_chunk.score:.4f}\n"
+                    f"Doc ID: {res_chunk.parent.doc_id}\n"
+                    f"Parent Section: {res_chunk.parent.section}\n"
+                    f"Parent Content: {res_chunk.parent.content[:150]}...\n"
+                    f"Số lượng matched children: {len(res_chunk.matched_children)}"
+                )
+
+        if not results:
+            return "Không tìm thấy kết quả phù hợp."
+
+        return "\n\n--------------------\n\n".join(results_chunk)
+
+    except Exception as e:
+        logger.exception("Lỗi khi search")
+        return f"Lỗi tìm kiếm: {e}"
+
+
+# ============================================================
+# 5. TOOL: GET
 # ============================================================
 
 @mcp.tool()
 def get(doc_id: str) -> str:
-    """Get document metadata and content by document ID."""
-
-    doc_id = normalize_text(doc_id)
-
+    """
+    Lấy toàn bộ nội dung của một tài liệu theo Document ID.
+    """
     if is_empty(doc_id):
-        return "Error: document ID must not be empty."
+        return "Vui lòng cung cấp doc_id."
+
+    document = vector_store.get_document(doc_id)
+
+    if document is None:
+        return f"Không tìm thấy tài liệu có ID: {doc_id}"
 
     try:
-        metadata_list = load_metadata()
+        path = resolve_document_path(document.source)
 
-        metadata = next(
-            (
-                item
-                for item in metadata_list
-                if item.get("doc_id") == doc_id
-            ),
-            None,
-        )
+        if not path.is_file():
+            return (
+                f"Đã tìm thấy metadata trong VectorStore nhưng file không tồn tại: "
+                f"{document.source}"
+            )
 
-        if metadata is None:
-            logger.warning("Document not found: %s", doc_id)
-            return f"Error: document '{doc_id}' not found."
-
-        source = metadata.get("source", "")
-        file_path = (PROJECT_ROOT / source).resolve()
-
-        try:
-            file_path.relative_to(RAW_DIR.resolve())
-        except ValueError:
-            return "Error: invalid document path."
-
-        if not file_path.is_file():
-            return f"Error: source file for '{doc_id}' not found."
-
-        if file_path.suffix.lower() not in {".txt", ".md"}:
-            return "Error: only TXT and Markdown files are supported."
-
-        content = file_path.read_text(encoding="utf-8")
-
-        logger.info("get doc_id=%s", doc_id)
+        content = path.read_text(encoding="utf-8")
 
         return (
-            f"Document ID: {doc_id}\n"
-            f"Title: {metadata.get('title', '')}\n"
-            f"Date: {metadata.get('date', '')}\n"
-            f"Version: {metadata.get('version', '')}\n"
-            f"Owner: {metadata.get('owner', '')}\n"
-            f"Source: {source}\n"
-            f"Content:\n{content}"
+            f"Document ID: {document.doc_id}\n"
+            f"Title: {document.title}\n"
+            f"Source: {document.source}\n\n"
+            f"Nội dung:\n{content}"
         )
 
-    except Exception:
-        logger.exception("Get document failed")
-        return "Error: failed to get document."
+    except Exception as e:
+        logger.exception("Lỗi khi get document")
+        return f"Lỗi đọc tài liệu: {e}"
 
 
 # ============================================================
-# TOOL 3: UPDATE DOCUMENT
+# 6. TOOL: UPDATE
 # ============================================================
 
 @mcp.tool()
-def update(doc_id: str, title: str, content: str) -> str:
-    """Update document title and content, then rebuild the search index."""
-
-    doc_id = normalize_text(doc_id)
-    title = normalize_text(title)
-    content = content.strip() if content else ""
-
+def update(doc_id: str, content: str) -> str:
+    """
+    Cập nhật nội dung file TXT và đồng bộ lại VectorStore/cache.
+    """
     if is_empty(doc_id):
-        return "Error: doc_id must not be empty."
+        return "Vui lòng cung cấp doc_id."
 
-    if is_empty(title):
-        return "Error: title must not be empty."
+    if content is None or not content.strip():
+        return "Nội dung cập nhật không được để trống."
 
-    if is_empty(content):
-        return "Error: content must not be empty."
+    document = vector_store.get_document(doc_id)
+
+    if document is None:
+        return f"Không tìm thấy tài liệu có ID: {doc_id}"
 
     try:
-        metadata_list = load_metadata()
+        path = resolve_document_path(document.source)
 
-        metadata = next(
-            (
-                item
-                for item in metadata_list
-                if item.get("doc_id") == doc_id
-            ),
-            None,
-        )
+        if not path.is_file():
+            return f"File không tồn tại: {document.source}"
 
-        if metadata is None:
-            logger.warning("Cannot update missing document: %s", doc_id)
-            return f"Error: document '{doc_id}' not found."
+        old_content = path.read_text(encoding="utf-8")
 
-        source = metadata.get("source", "")
-        file_path = (PROJECT_ROOT / source).resolve()
+        # Ghi nội dung mới vào file nguồn.
+        path.write_text(content, encoding="utf-8")
 
         try:
-            file_path.relative_to(RAW_DIR.resolve())
-        except ValueError:
-            return "Error: invalid document path."
+            # Tạo lại VectorStore để embedding phản ánh nội dung mới.
+            new_store = build_vector_store()
 
-        if not file_path.is_file():
-            return f"Error: source file for '{doc_id}' not found."
+            if doc_id not in new_store.documents:
+                raise RuntimeError(
+                    "Không tìm thấy tài liệu sau khi tạo lại VectorStore."
+                )
 
-        if file_path.suffix.lower() not in {".txt", ".md"}:
-            return "Error: only TXT and Markdown files are supported."
+            # Cập nhật store đang được các MCP tools sử dụng.
+            vector_store.documents = new_store.documents
+            vector_store.parent_chunks = new_store.parent_chunks
+            vector_store.child_chunks = new_store.child_chunks
+            vector_store.parents_in_doc = new_store.parents_in_doc
+            vector_store.children_in_parent = new_store.children_in_parent
 
-        # Save original values for rollback.
-        old_content = file_path.read_text(encoding="utf-8")
-        old_metadata = [item.copy() for item in metadata_list]
-
-        try:
-            # 1. Save new document content.
-            file_path.write_text(content, encoding="utf-8")
-
-            # 2. Update metadata.
-            metadata["title"] = title
-
-            # 3. Verify metadata and file persistence.
-            save_metadata(metadata_list)
-
-            saved_content = file_path.read_text(encoding="utf-8")
-            saved_metadata_list = load_metadata()
-
-            saved_metadata = next(
-                (
-                    item
-                    for item in saved_metadata_list
-                    if item.get("doc_id") == doc_id
-                ),
-                None,
-            )
-
-            if (
-                saved_content != content
-                or saved_metadata is None
-                or saved_metadata.get("title") != title
-            ):
-                raise RuntimeError("Update verification failed.")
-
-            # 4. Build a new index before replacing the current one.
-            new_store = VectorStore()
-
-            load_documents(
-                vector_store=new_store,
-                logger=logger,
-            )
-
-            # Replace the old index only after rebuilding succeeds.
-            global vector_store
-            vector_store = new_store
+            return f"Đã cập nhật tài liệu {doc_id} và lưu lại VectorStore."
 
         except Exception:
-            # Restore the original document file.
-            file_path.write_text(old_content, encoding="utf-8")
+            # Nếu tái tạo index thất bại, khôi phục file nguồn cũ.
+            path.write_text(old_content, encoding="utf-8")
+            logger.exception("Không thể đồng bộ VectorStore sau khi update")
+            return "Cập nhật thất bại khi đồng bộ VectorStore; đã khôi phục file nguồn."
 
-            # Restore the original metadata.
-            save_metadata(old_metadata)
-
-            logger.exception(
-                "Update or index rebuild failed for document %s",
-                doc_id,
-            )
-
-            return (
-                "Error: update or index rebuild failed. "
-                "The original document and metadata were restored. "
-                "Check the server logs."
-            )
-
-        logger.info(
-            "Updated document and rebuilt index: %s",
-            doc_id,
-        )
-
-        return (
-            "Update saved, verified, and search index rebuilt.\n"
-            f"Document ID: {doc_id}\n"
-            f"Title: {title}\n"
-            f"Source: {source}"
-        )
-
-    except Exception:
-        logger.exception("Update failed")
-        return "Error: update failed. Check the server logs."
+    except Exception as e:
+        logger.exception("Lỗi khi update document")
+        return f"Lỗi cập nhật tài liệu: {e}"
 
 
 # ============================================================
-# 4. RUN MCP SERVER
+# 7. CHẠY MCP SERVER
 # ============================================================
 
 if __name__ == "__main__":
+    logger.info("MCP Server đang khởi động...")
     mcp.run()
