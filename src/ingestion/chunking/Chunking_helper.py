@@ -1,49 +1,61 @@
-from dataclasses import dataclass,field,asdict
-from pathlib import * 
+from dataclasses import dataclass, field, asdict
+from pathlib import *
 from src.models.Document import Document
-from src.models.DocumentChunk import ParentChunk,ChildChunk
-import json 
+from src.models.DocumentChunk import ParentChunk, ChildChunk
+import json
 from typing import Optional
 import re
 from datetime import datetime
+from dotenv import load_dotenv
+import os
 
-def loaddoc(filename:str)->Document:
-        retrivePath=f"data/raw/{filename}"
-        path=Path(retrivePath)
-        if not path.exists() or not path.is_file():
-            return None
-        text=path.read_text(encoding="utf-8")
-        return Document(
-            content=text,
-            source=retrivePath,
-            title=path.stem,
-            metadata={
-                "docType":path.suffix
-            }
+load_dotenv()
+
+
+# ===== LỖI 2: loaddoc =====
+def loaddoc(filename: str) -> Optional[Document]:
+    base = os.getenv("DOC_PATH")
+    if not base:
+        raise ValueError("DOC_PATH chưa được thiết lập trong file .env")
+
+    path = Path(base) / filename
+    if not path.exists() or not path.is_file():
+        return None
+
+    text = path.read_text(encoding="utf-8")
+    return Document(
+        content=text,
+        source=str(path),
+        title=path.stem,
+        metadata={"docType": path.suffix},
+    )
+
+
+def markdownChunkingParent(doc: Document) -> list[ParentChunk]:
+    parents = []
+    heading = list(re.finditer(r"^#+.*?$", doc.content, re.MULTILINE))
+    doc_content = doc.content
+    idx = 1
+    for i in range(0, len(heading)):
+        section = heading[i].group().strip()
+        parent_content = ""
+        if i < len(heading) - 1:
+            parent_content = doc_content[heading[i].end():heading[i + 1].start()].strip()
+        else:
+            parent_content = doc_content[heading[i].end():]
+        parent = ParentChunk(
+            doc_id=doc.doc_id,
+            source=doc.source,
+            section=section,
+            parent_index=idx,
+            content=parent_content,
         )
-def markdownChunkingParent(doc:Document)->list[ParentChunk]:
-    parents=[]
-    heading=list(re.finditer(r"^#+.*?$",doc.content,re.MULTILINE))
-    doc_content=doc.content
-    idx=1
-    for i in range(0,len(heading)):
-        section=heading[i].group().strip()
-        parent_content=""
-        if i<len(heading)-1:
-            parent_content=doc_content[heading[i].end():heading[i+1].start()].strip()  
-                         
-        else:             
-            parent_content=doc_content[heading[i].end():]
-        parent=ParentChunk(doc_id=doc.doc_id,
-                                source=doc.source,
-                                section=section,
-                                parent_index=idx,
-                                content=parent_content
-                                )
-        idx+=1
+        idx += 1
         parents.append(parent)
     return parents
-def normalTextSentenceChunking(doc: Document,max_tk: int = 900,overlap: int = 15) -> list[ParentChunk]:
+
+
+def normalTextSentenceChunking(doc: Document, max_tk: int = 900, overlap: int = 15) -> list[ParentChunk]:
 
     parents: list[ParentChunk] = []
 
@@ -70,7 +82,7 @@ def normalTextSentenceChunking(doc: Document,max_tk: int = 900,overlap: int = 15
                 parent_index=idx,
                 content=contentreal,
                 doc_id=doc.doc_id,
-                metadata={**doc.metadata,"parentSize":len(contentreal)}
+                metadata={**doc.metadata, "parentSize": len(contentreal)},
             )
 
             parents.append(parent)
@@ -107,33 +119,35 @@ def normalTextSentenceChunking(doc: Document,max_tk: int = 900,overlap: int = 15
             parent_index=idx,
             content=contentreal,
             doc_id=doc.doc_id,
-            metadata={**doc.metadata,"parentSize":len(contentreal)}
-
+            metadata={**doc.metadata, "parentSize": len(contentreal)},
         )
 
         parents.append(parent)
 
     return parents
+
+
 def headerCheck(doc: Document) -> bool:
     match = re.search(r"^#+.*?$", doc.content, re.MULTILINE)
     return match is not None
-     
-def ParentChunking(doc:Document,parent_max:int=1500,parent_overlap:int=150):          
-        if doc.metadata.get("docType")==".md":
-            if headerCheck(doc):
-               return markdownChunkingParent(doc)
-            else:
-                normalTextSentenceChunking(doc)
-        elif doc.metadata.get("docType")==".txt":
-          return normalTextSentenceChunking(doc,parent_max,parent_overlap)
-        else:
-          return None
+
+
+# ===== LỖI 1: ParentChunking =====
+def ParentChunking(doc: Document, parent_max: int = 1500, parent_overlap: int = 150):
+    doc_type = doc.metadata.get("docType")
+    if doc_type == ".md":
+        if headerCheck(doc):
+            return markdownChunkingParent(doc)
+        return normalTextSentenceChunking(doc, parent_max, parent_overlap)
+    elif doc_type == ".txt":
+        return normalTextSentenceChunking(doc, parent_max, parent_overlap)
+    return None
 
 
 def ChildChunking(
     parent: ParentChunk,
     child_max: int = 600,
-    child_overlap: int = 80
+    child_overlap: int = 80,
 ) -> list[ChildChunk]:
 
     children: list[ChildChunk] = []
@@ -148,7 +162,7 @@ def ChildChunking(
         s.strip()
         for s in re.split(
             r"(?<=[.!?])\s+|\n+",
-            parent.content
+            parent.content,
         )
         if s.strip()
     ]
@@ -156,6 +170,7 @@ def ChildChunking(
     buffer: list[str] = []
     count = 0
 
+    # ===== LỖI 3: datetime -> isoformat =====
     def save_child(content: str) -> None:
         child = ChildChunk(
             content=content,
@@ -163,9 +178,9 @@ def ChildChunking(
             chunk_index=len(children),
             parent_id=parent.parent_id,
             metadata={
-                "create_date": datetime.now(),
-                "size": len(content)
-            }
+                "create_date": datetime.now().isoformat(),
+                "size": len(content),
+            },
         )
         children.append(child)
 
@@ -224,16 +239,3 @@ def ChildChunking(
         save_child(" ".join(buffer))
 
     return children
-
-if __name__=="__main__":
-    res=loaddoc("test.txt")
-    res=ParentChunking(res)
-    for i in res:
-        print(json.dumps(asdict(i),indent=3,default=str))
-        for j in ChildChunking(i):
-            print(json.dumps(asdict(j),indent=3,default=str))
-    
-          
-          
-          
-     
