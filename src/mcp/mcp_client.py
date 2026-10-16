@@ -3,15 +3,14 @@ import asyncio
 
 from mcp import Client, StdioServerParameters
 
-
 # ============================================================
-# HELPER: PRINT TOOL RESULT
+# 1. HELPER: IN KET QUA
 # ============================================================
 
 def print_result(test_name: str, result) -> None:
-    print("\n" + "=" * 60)
+    print("\n" + "=" * 70)
     print(f"TEST: {test_name}")
-    print("=" * 60)
+    print("=" * 70)
 
     print(f"MCP is_error: {result.is_error}")
 
@@ -24,19 +23,29 @@ def print_result(test_name: str, result) -> None:
 
 
 # ============================================================
-# MAIN TEST
+# 2. GOI TOOL
+# ============================================================
+
+async def call_and_print(client, tool_name: str, arguments: dict, test_name: str):
+    result = await client.call_tool(tool_name, arguments)
+    print_result(test_name, result)
+    return result
+
+
+# ============================================================
+# 3. MAIN TEST
 # ============================================================
 
 async def main():
     server = StdioServerParameters(
         command="uv",
-        args=["run", "python", "-m", "src.mcp.server"],
+        args=["run", "python", "-m", "src.mcp.server"]
     )
 
     async with Client(server) as client:
 
         # ----------------------------------------------------
-        # 1. DISCOVER AVAILABLE TOOLS
+        # TEST 1: DISCOVER TOOLS
         # ----------------------------------------------------
 
         tools = (await client.list_tools()).tools
@@ -49,173 +58,167 @@ async def main():
             print(f"Input schema: {tool.input_schema}")
 
         available_tools = {tool.name for tool in tools}
-
         required_tools = {"search", "get", "update"}
+
         missing_tools = required_tools - available_tools
 
         if missing_tools:
             print(f"\nMissing tools: {missing_tools}")
             return
 
-        # ----------------------------------------------------
-        # 2. CONFIGURATION
-        # ----------------------------------------------------
-
-        # IMPORTANT:
-        # Change this to a real doc_id in data/documents.json.
-        doc_id = "test"
-
-        updated_title = "MCP Update Test"
-        updated_content = (
-            "This document was updated through the MCP client. "
-            "It is used to verify persistent updates and search indexing."
-        )
+        # ID lấy từ document_store_cache.json của bạn
+        doc_id = "doc_test"
 
         # ----------------------------------------------------
-        # 3. TEST SEARCH WITH A NORMAL QUERY
+        # TEST 2: SEARCH
         # ----------------------------------------------------
 
-        result = await client.call_tool(
+        await call_and_print(
+            client,
             "search",
             {
-                "query": "trinh la gi",
-                "k": 1,
+                "query": "What does no cap mean?",
+                "top_k": 3,
             },
+            "1. SEARCH - normal query",
         )
-        print_result("1. SEARCH - normal query", result)
 
         # ----------------------------------------------------
-        # 4. TEST GET BEFORE UPDATE
+        # TEST 3: GET EXISTING DOCUMENT
         # ----------------------------------------------------
 
-        result = await client.call_tool(
+        await call_and_print(
+            client,
             "get",
             {
                 "doc_id": doc_id,
             },
+            "2. GET - existing document",
         )
-        print_result("2. GET - before update", result)
 
         # ----------------------------------------------------
-        # 5. TEST UPDATE
+        # TEST 4: GET NONEXISTENT DOCUMENT
         # ----------------------------------------------------
 
-        result = await client.call_tool(
-            "update",
-            {
-                "doc_id": doc_id,
-                "title": updated_title,
-                "content": updated_content,
-            },
-        )
-        print_result("3. UPDATE - existing document", result)
-
-        # ----------------------------------------------------
-        # 6. TEST GET AFTER UPDATE
-        # ----------------------------------------------------
-
-        result = await client.call_tool(
-            "get",
-            {
-                "doc_id": doc_id,
-            },
-        )
-        print_result("4. GET - verify updated content", result)
-
-        # ----------------------------------------------------
-        # 7. TEST SEARCH FOR THE NEW CONTENT
-        # ----------------------------------------------------
-
-        result = await client.call_tool(
-            "search",
-            {
-                "query": "verify persistent updates and search indexing",
-                "k": 3,
-            },
-        )
-        print_result("5. SEARCH - updated content", result)
-
-        # ----------------------------------------------------
-        # 8. TEST GET WITH NONEXISTENT DOCUMENT ID
-        # ----------------------------------------------------
-
-        result = await client.call_tool(
+        await call_and_print(
+            client,
             "get",
             {
                 "doc_id": "doc_DOES_NOT_EXIST",
             },
+            "3. GET - nonexistent document",
         )
-        print_result("6. GET - nonexistent document", result)
 
         # ----------------------------------------------------
-        # 9. TEST UPDATE WITH NONEXISTENT DOCUMENT ID
+        # TEST 5: SEARCH WITH EMPTY QUERY
         # ----------------------------------------------------
 
-        result = await client.call_tool(
-            "update",
-            {
-                "doc_id": "doc_DOES_NOT_EXIST",
-                "title": "Invalid Update",
-                "content": "This document does not exist.",
-            },
-        )
-        print_result("7. UPDATE - nonexistent document", result)
-
-        # ----------------------------------------------------
-        # 10. TEST SEARCH WITH EMPTY QUERY
-        # ----------------------------------------------------
-
-        result = await client.call_tool(
+        await call_and_print(
+            client,
             "search",
             {
                 "query": "",
-                "k": 1,
+                "top_k": 3,
             },
+            "4. SEARCH - empty query",
         )
-        print_result("8. SEARCH - empty query", result)
 
         # ----------------------------------------------------
-        # 11. TEST GET WITH EMPTY DOCUMENT ID
+        # TEST 6: GET WITH EMPTY ID
         # ----------------------------------------------------
 
-        result = await client.call_tool(
+        await call_and_print(
+            client,
             "get",
             {
                 "doc_id": "",
             },
+            "5. GET - empty document ID",
         )
-        print_result("9. GET - empty document ID", result)
 
         # ----------------------------------------------------
-        # 12. TEST UPDATE WITH EMPTY TITLE
+        # TEST 7: UPDATE WITH NONEXISTENT ID
         # ----------------------------------------------------
 
-        result = await client.call_tool(
+        await call_and_print(
+            client,
+            "update",
+            {
+                "doc_id": "doc_DOES_NOT_EXIST",
+                "content": "This document does not exist.",
+            },
+            "6. UPDATE - nonexistent document",
+        )
+
+        # ----------------------------------------------------
+        # TEST 8: UPDATE WITH EMPTY CONTENT
+        # ----------------------------------------------------
+
+        await call_and_print(
+            client,
             "update",
             {
                 "doc_id": doc_id,
-                "title": "",
-                "content": "This update should be rejected.",
+                "content": "",
             },
+            "7. UPDATE - empty content",
         )
-        print_result("10. UPDATE - empty title", result)
 
         # ----------------------------------------------------
-        # 13. TEST SEARCH WITH INVALID K
+        # TEST 9: OPTIONAL UPDATE REAL DOCUMENT
         # ----------------------------------------------------
 
-        result = await client.call_tool(
-            "search",
-            {
-                "query": "test query",
-                "k": 0,
-            },
-        )
-        print_result("11. SEARCH - invalid k", result)
+        print("\n" + "=" * 70)
+        print("OPTIONAL TEST: UPDATE REAL DOCUMENT")
+        print("=" * 70)
+        print("Can thi thay doi truc tiep file data/raw/test.txt.")
 
-        print("\n" + "=" * 60)
+        confirm = input(
+            "Ban co muon cap nhat noi dung that khong? (yes/no): "
+        ).strip().lower()
+
+        if confirm == "yes":
+            new_content = (
+                "# MCP Update Test\n\n"
+                "This document was updated through the MCP client. "
+                "The purpose is to test document updating, cache persistence, "
+                "and search indexing."
+            )
+
+            await call_and_print(
+                client,
+                "update",
+                {
+                    "doc_id": doc_id,
+                    "content": new_content,
+                },
+                "8. UPDATE - existing document",
+            )
+
+            await call_and_print(
+                client,
+                "get",
+                {
+                    "doc_id": doc_id,
+                },
+                "9. GET - verify updated document",
+            )
+
+            await call_and_print(
+                client,
+                "search",
+                {
+                    "query": "test document updating cache persistence",
+                    "top_k": 3,
+                },
+                "10. SEARCH - updated content",
+            )
+        else:
+            print("Bo qua update. Tai lieu goc duoc giu nguyen.")
+
+        print("\n" + "=" * 70)
         print("ALL TEST CALLS COMPLETED")
-        print("=" * 60)
+        print("=" * 70)
 
 
 if __name__ == "__main__":
