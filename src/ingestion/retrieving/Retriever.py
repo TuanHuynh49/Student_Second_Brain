@@ -43,6 +43,7 @@ def retrieve(query: str, store: VectorStore, oversample: int = 4, top_k: int = 3
             
     retrieved_results.sort(key=lambda x: x.score, reverse=True)
     return retrieved_results[:top_k]
+
 if __name__ == "__main__":
     myStore = VectorStore()
     res = loaddoc("test.txt")

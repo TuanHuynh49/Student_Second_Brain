@@ -10,10 +10,17 @@ def setup_logger():
     except OSError as error:
         print(f"warning: cannot open {LOG_PATH}: {error}", file=sys.stderr)
 
-    logging.basicConfig(
-        level=logging.INFO,
-        handlers=_handlers,
-        format="%(asctime)s %(levelname)s %(name)s: %(message)s", 
-    )
+    logger = logging.getLogger("student_second_brain")
+    logger.setLevel(logging.INFO)
+    logger.propagate = False
+    formatter = logging.Formatter(
+    "%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
 
-    return logging.getLogger("student_second_brain")
+    for handler in _handlers:
+        handler.setFormatter(formatter)
+        logger.addHandler(handler)
+
+    return logger
+ 
