@@ -13,11 +13,6 @@ from src.ingestion.retrieving.Retriever import retrieve
 from src.models.VectorStore import VectorStore
 from src.ingestion.document_loader import load_documents
 
-
-# ============================================================
-# 1. INITIALIZE MCP SERVER
-# ============================================================
-
 mcp = MCPServer(
     "student-second-brain",
     description="Student Second Brain MCP server",
@@ -26,10 +21,6 @@ mcp = MCPServer(
 logger = setup_logger()
 logger.info("MCP Server started")
 
-
-# ============================================================
-# 2. LOAD DOCUMENTS INTO SEARCH INDEX
-# ============================================================
 
 def build_vector_store():
     """Build a fresh search index from the persisted documents."""
@@ -42,9 +33,7 @@ def build_vector_store():
 
     return new_store
 
-
 vector_store = build_vector_store()
-
 
 def rebuild_vector_store():
     """Replace the current search index after a successful update."""
@@ -56,9 +45,6 @@ def rebuild_vector_store():
     logger.info("Search index rebuilt successfully.")
 
 
-# ============================================================
-# TOOL 1: SEARCH
-# ============================================================
 
 @mcp.tool()
 def search(query: str, k: int = 3) -> str:
