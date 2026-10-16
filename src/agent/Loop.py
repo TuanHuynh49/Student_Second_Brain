@@ -12,7 +12,7 @@ def load_prompt(filename: str = "agent_react.txt") -> str:
     prompt_path = Path(__file__).resolve().parent.parent / "prompts" /filename
     return prompt_path.read_text(encoding="utf-8").strip()
 
-def run_agent(user_task: str, system_prompt: str = None, memory: SlidingWindowMemory = None, tools=(), max_step: int = 5, name: str = "StudentBrain"):
+def run_agent(user_task: str, system_prompt: str = None, memory: SlidingWindowMemory = None, tools=(), max_step: int = 5, name: str = "StudentSecondBrain"):
     if system_prompt is None:
         system_prompt = load_prompt("agent_react.txt")
 
