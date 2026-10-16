@@ -24,4 +24,3 @@ class RetrievedChunk:
     parent: ParentChunk
     score: float                                 
     matched_children: list[str] = field(default_factory=list)
-
