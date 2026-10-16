@@ -21,6 +21,7 @@ def loaddoc(filename:str)->Document:
                 "docType":path.suffix
             }
         )
+
 def markdownChunkingParent(doc:Document)->list[ParentChunk]:
     parents=[]
     heading=list(re.finditer(r"^#+.*?$",doc.content,re.MULTILINE))
