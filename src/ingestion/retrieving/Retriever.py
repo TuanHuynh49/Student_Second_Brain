@@ -35,6 +35,7 @@ def retrieve(query:Query , store: VectorStore, oversample: int = 4) -> list[Retr
     retrieve_results.sort(key=lambda x: x.score,reverse=True)
     return retrieve_results[:Query.top_k]
 
+
     
 if __name__ == "__main__":
     myStore = VectorStore()

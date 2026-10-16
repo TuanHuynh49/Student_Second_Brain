@@ -1,8 +1,10 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field,asdict
+import json 
 from typing import List, Optional
 from src.models.DocumentStore import DocumentStore
 from src.models.DocumentChunk import ChildChunk,ParentChunk
 from src.models.Document import Document
+from datetime import datetime
 
 from src.ingestion.embedding.embedding_helper import embed_tex,cosine_similarity
 from src.ingestion.chunking.Chunking_helper import loaddoc
@@ -25,24 +27,46 @@ class VectorStore(DocumentStore):
                 results.append((chunk,score))
         results.sort(key=lambda x:x[1],reverse=True)
         return results[:top_k]
+    def save(self, path: str) -> None:
+        """Lưu toàn bộ trạng thái ra JSON mà không cần hàm phụ trợ nào."""
+        data = {
+            "documents": {doc_id: asdict(doc) for doc_id, doc in self.documents.items()},
+            "parent_chunks": {pid: asdict(p) for pid, p in self.parent_chunks.items()},
+            "child_chunks": {cid: asdict(c) for cid, c in self.child_chunks.items()},
+            "parents_in_doc": self.parents_in_doc,
+            "children_in_parent": self.children_in_parent
+        }
+        
+        with open(path, 'w', encoding='utf-8') as f:
+            json.dump(data, f, ensure_ascii=False, indent=4,default=str)
+        print(f"Đã lưu thành công vào: {path}")
 
-if __name__=="__main__":
-    myStore = VectorStore()
+    @classmethod
+    def load(cls, path: str) -> "DocumentStore":
+        with open(path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+            
+        store = cls()
+        store.documents = {k: Document(**v) for k, v in data.get("documents", {}).items()}
+        store.parent_chunks = {k: ParentChunk(**v) for k, v in data.get("parent_chunks", {}).items()}
+        store.child_chunks = {k: ChildChunk(**v) for k, v in data.get("child_chunks", {}).items()}
+        store.parents_in_doc = data.get("parents_in_doc", {})
+        store.children_in_parent = data.get("children_in_parent", {})
+        
+        print(f"Đã tải thành công từ: {path}")
+        return store
+
+if __name__ == "__main__":
+    store = VectorStore()
     res = loaddoc("test.txt")
-    
-    if res is not None:
-        doc_id = myStore.add(res)
-        print(f"Đã thêm thành công Document ID: {doc_id}")
-        print(f"Số lượng Parent Chunks: {len(myStore.parent_chunks)}")
-        print(f"Số lượng Child Chunks: {len(myStore.child_chunks)}")
+    if res:
+        store.add(res)
         
-        # Test kiểm tra ID theo file của một child chunk bất kỳ
-        first_child_id = list(myStore.child_chunks.keys())[0]
-        print(f"Ví dụ ID của Child Chunk: {first_child_id}")
+        # 1. Lưu ra file
+        store.save("document_store_cache.json")
         
-        print("\n--- TEST TÌM KIẾM VECTOR ---")
-        for chunk, score in myStore.search("Tell me about trinh la gi"):
-            print(f"Score: {score:.4f} | Chunk ID: {chunk.chunk_id} | Content: {chunk.content[:80]}...")
-    else:
-        print("Không tìm thấy file test.txt trong thư mục data/raw/")
+        # 2. Tải lại từ file vào một Store mới
+        loaded_store = VectorStore.load("document_store_cache.json")
+        print(f"Số lượng Document đã tải: {len(loaded_store.documents)}")
+        print(f"Số lượng Child Chunks đã tải: {len(loaded_store.child_chunks)}")
     
