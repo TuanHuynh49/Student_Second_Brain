@@ -1,53 +1,110 @@
-from src.models.Document import Document
-from src.models.DocumentChunk import ChildChunk,ParentChunk
-from src.ingestion.chunking.Chunking_helper import ParentChunking,ChildChunking
-from dataclasses import dataclass, field,asdict
-from typing import Optional
-from src.ingestion.chunking.Chunking_helper import loaddoc
+from dataclasses import dataclass, field, asdict
+from typing import Optional, List
+from pathlib import Path
 from datetime import datetime
 import json
+
+from src.models.Document import Document
+from src.models.DocumentChunk import ChildChunk, ParentChunk, RetrievedChunk
+from src.ingestion.chunking.Chunking_helper import ParentChunking, ChildChunking, loaddoc
+from src.ingestion.embedding.embedding_helper import embed_tex, cosine_similarity
+
 @dataclass
 class DocumentStore:
-    documents:dict[str,Document]=field(default_factory=dict)
-    parentChunks:dict[str,ParentChunk]=field(default_factory=dict)
-    childChunk:dict[str,ChildChunk]=field(default_factory=dict)
-    Parent_in_Doc:dict[str,list[str]]=field(default_factory=dict)
-    Child_in_Parent:dict[str,list[str]]=field(default_factory=dict)
+    documents: dict[str, Document] = field(default_factory=dict)
+    parent_chunks: dict[str, ParentChunk] = field(default_factory=dict)
+    child_chunks: dict[str, ChildChunk] = field(default_factory=dict)
+    parents_in_doc: dict[str, list[str]] = field(default_factory=dict)
+    children_in_parent: dict[str, list[str]] = field(default_factory=dict)
 
-    def add(self,doc:Document)->str:
+    def validate(self, doc: Document, parents: list[ParentChunk], children: list[ChildChunk]) -> None:
+        """Kiểm tra dữ liệu trước khi ghi."""
         if not doc.doc_id:
-            doc.doc_id=f"doc_{len(self.documents)+1:04d}"
-        self.documents[doc.doc_id]=doc
-        parents=ParentChunking(doc)
-        parents_ids=[]
-        for parent in parents:
-            parent_id=self.add_parent(parent)
-            parents_ids.append(parent_id)
-        self.Parent_in_Doc[doc.doc_id]=parents_ids
-        for parent in parents:
-            childs_ids=[]
-            childs=ChildChunking(parent)
-            for child in childs:
-                childid=self.add_child(child)
-                childs_ids.append(child.chunk_id)
-            self.Child_in_Parent[parent.parent_id]=childs_ids
-        return doc.doc_id
+            raise ValueError("doc_id chưa được gán cho Document")
+ 
+        parent_ids: set[str] = set()
+        for p in parents:
+            if not p.parent_id:
+                raise ValueError(f"ParentChunk thiếu parent_id (section={p.section!r})")
+            if p.parent_id in parent_ids:
+                raise ValueError(f"parent_id bị trùng trong tài liệu: {p.parent_id}")
+            if p.doc_id != doc.doc_id:
+                raise ValueError(f"{p.parent_id}: doc_id={p.doc_id!r} khác tài liệu {doc.doc_id!r}")
+            parent_ids.add(p.parent_id)
+ 
+        child_ids: set[str] = set()
+        for c in children:
+            if not c.chunk_id:
+                raise ValueError(f"ChildChunk thiếu chunk_id")
+            if c.chunk_id in child_ids:
+                raise ValueError(f"chunk_id bị trùng trong tài liệu: {c.chunk_id}")
+            if c.parent_id not in parent_ids:
+                raise ValueError(f"{c.chunk_id}: parent_id {c.parent_id!r} không có trong danh sách cha")
+            if c.doc_id != doc.doc_id:
+                raise ValueError(f"{c.chunk_id}: doc_id={c.doc_id!r} khác tài liệu {doc.doc_id!r}")
+            child_ids.add(c.chunk_id)
 
-    def add_parent(self,parent:ParentChunk)->str:
-        if not parent.parent_id:
-            parent.parent_id=f"parent_{len(self.parentChunks) + 1:04d}"
-        self.parentChunks[parent.parent_id]=parent
-        return parent.parent_id
-    def add_child(self,child:ChildChunk)->str:
-        if not child.chunk_id:
-            child.chunk_id=f"child_{len(self.childChunk) + 1:04d}"
-        self.childChunk[child.chunk_id]=child
-        return child.chunk_id
-    def list_all(self)->Optional[Document]:
-        return list(self.documents.values())
-if __name__=="__main__":
-    myStore=DocumentStore()
-    res= loaddoc("test.txt")
-    id=myStore.add(res)
-    print(myStore.childChunk)
+    def add(self, doc: Document) -> str:
+        """Hàm add đóng vai trò điều phối (Orchestrator), gọi các bước nhỏ theo quy trình."""
+        self._assign_document_id(doc)
+
+        if doc.doc_id in self.documents:
+            self.delete_document(doc.doc_id)
+
+        parents, children = self._generate_chunks(doc)
+
+        self.validate(doc, parents, children)
+
+        self._persist(doc, parents, children)
+
+        return doc.doc_id
+    def _assign_document_id(self, doc: Document) -> None:
+        if not doc.doc_id:
+            doc.title = doc.title or "unnamed"
+            doc.doc_id = f"doc_{doc.title}"
+    def _generate_chunks(self, doc: Document) -> tuple[list[ParentChunk], list[ChildChunk]]:
+        raw_parents = ParentChunking(doc) or []
+        parents = []
+        for idx, p in enumerate(raw_parents, 1):
+            p.doc_id = doc.doc_id
+            p.parent_id = f"parent_{doc.title}_{idx:03d}"
+            parents.append(p)
+
+        children = []
+        child_counter = 1
+        for p in parents:
+            raw_children = ChildChunking(p) or []
+            for c in raw_children:
+                c.doc_id = doc.doc_id
+                c.parent_id = p.parent_id
+                c.chunk_id = f"child_{doc.title}_{child_counter:04d}"
+                children.append(c)
+                child_counter += 1
+                
+        return parents, children
+    def _persist(self, doc: Document, parents: list[ParentChunk], children: list[ChildChunk]) -> None:
+        self.documents[doc.doc_id] = doc
+        self.parents_in_doc[doc.doc_id] = [p.parent_id for p in parents]
+        
+        for p in parents:
+            self.parent_chunks[p.parent_id] = p
+            self.children_in_parent[p.parent_id] = []
+            
+        for c in children:
+            self.child_chunks[c.chunk_id] = c
+            self.children_in_parent[c.parent_id].append(c.chunk_id)
     
+    def list_all(self) -> list[Document]:
+        return list(self.documents.values())
+
+    def delete_document(self, doc_id: str) -> list[str]:
+        if doc_id not in self.documents:
+            return []
+        removed_children: list[str] = []
+        for parent_id in self.parents_in_doc.pop(doc_id, []):
+            for chunk_id in self.children_in_parent.pop(parent_id, []):
+                self.child_chunks.pop(chunk_id, None)
+                removed_children.append(chunk_id)
+            self.parent_chunks.pop(parent_id, None)
+        del self.documents[doc_id]
+        return removed_children
