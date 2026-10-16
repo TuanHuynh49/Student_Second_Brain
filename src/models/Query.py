@@ -1,16 +1,11 @@
 from dataclasses import dataclass, field
+from typing import Optional, List
+
 @dataclass
 class Query:
-    text: str
+    text: str=""
     top_k: int = 5
-    
-# # src/rag/retriever.py
-# from src.models import Query, RetrievedChunk, ParentChunk
-
-# def retrieve(query: Query) -> list[RetrievedChunk]:
-#     # TODO: thay bằng Dense/Hybrid retrieval thật
-#     return [RetrievedChunk(
-#         parent=ParentChunk(content="Nội dung mẫu...", parent_id="x-p0",
-#                            doc_id="x", source="lesson_01.pdf", page=3),
-#         score=0.9,
-#     )]
+    score_threshold:float=0.0
+    metadata:dict=field(default_factory=dict)
+    # subject
+    # doc_id

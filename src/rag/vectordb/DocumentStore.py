@@ -7,7 +7,11 @@ import json
 from src.models.Document import Document
 from src.models.DocumentChunk import ChildChunk, ParentChunk, RetrievedChunk
 from src.ingestion.chunking.Chunking_helper import ParentChunking, ChildChunking, loaddoc
-from src.ingestion.embedding.embedding_helper import embed_tex, cosine_similarity
+from src.rag.embeddings.embedding_helper import embed_tex
+from src.rag.retrieval.cosin_similarity import cosine_similarity
+from dotenv import load_dotenv
+import os 
+load_dotenv()
 
 @dataclass
 class DocumentStore:
@@ -44,9 +48,8 @@ class DocumentStore:
                 raise ValueError(f"{c.chunk_id}: doc_id={c.doc_id!r} khác tài liệu {doc.doc_id!r}")
             child_ids.add(c.chunk_id)
 
-    def add(self, doc: Document) -> str:
-        """Hàm add đóng vai trò điều phối (Orchestrator), gọi các bước nhỏ theo quy trình."""
-        self._assign_document_id(doc)
+    def add(self, doc: Document,subject:str=None) -> str:
+        self._assign_document_id(doc,subject)
 
         if doc.doc_id in self.documents:
             self.delete_document(doc.doc_id)
@@ -58,15 +61,18 @@ class DocumentStore:
         self._persist(doc, parents, children)
 
         return doc.doc_id
-    def _assign_document_id(self, doc: Document) -> None:
+    def _assign_document_id(self, doc: Document,subject:str=None) -> None:
         if not doc.doc_id:
             doc.title = doc.title or "unnamed"
             doc.doc_id = f"doc_{doc.title}"
+        doc.metadata["subject"]=subject
+        
     def _generate_chunks(self, doc: Document) -> tuple[list[ParentChunk], list[ChildChunk]]:
         raw_parents = ParentChunking(doc) or []
         parents = []
         for idx, p in enumerate(raw_parents, 1):
             p.doc_id = doc.doc_id
+            p.metadata["subject"]=doc.metadata.get("subject",None)
             p.parent_id = f"parent_{doc.title}_{idx:03d}"
             parents.append(p)
 
@@ -77,6 +83,7 @@ class DocumentStore:
             for c in raw_children:
                 c.doc_id = doc.doc_id
                 c.parent_id = p.parent_id
+                c.metadata["subject"]=p.metadata.get("subject",None)
                 c.chunk_id = f"child_{doc.title}_{child_counter:04d}"
                 children.append(c)
                 child_counter += 1
