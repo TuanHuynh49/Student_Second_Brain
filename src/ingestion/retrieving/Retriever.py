@@ -8,57 +8,51 @@ from src.models.DocumentChunk import RetrievedChunk
 from collections import defaultdict
 from src.models.DocumentChunk import RetrievedChunk
 from src.ingestion.chunking.Chunking_helper import loaddoc
+from src.models.Query import Query
 
-def retrieve(query: str, store: VectorStore, oversample: int = 4, top_k: int = 3) -> list[RetrievedChunk]:
-    hits = store.search(query, top_k=top_k * oversample)
-    
-    parent_scores = defaultdict(list)
-    parent_matched_children = defaultdict(list)
-    
-    for child, score in hits:
-        parent_id = child.parent_id
-        if not parent_id:
-        # Trường hợp chunk không có parent_id thì bỏ qua
+def retrieve(query:Query , store: VectorStore, oversample: int = 4) -> list[RetrievedChunk]:
+    hits =store.search(query=query.text,top_k=query.top_k*oversample)
+    parent_score=defaultdict(list)
+    child_matches=defaultdict(list)
+    for child,score in hits:
+        parentId=child.parent_id
+        if not parentId:
             continue
-            
-        parent_scores[parent_id].append(score)
-        parent_matched_children[parent_id].append(child.content) # Hoặc dùng child.chunk_id tùy nhu cầu
-        
-    retrieved_results = []
-    
-    # 2. Tổng hợp lại thành các RetrievedChunk chứa Parent
-    for parent_id, scores in parent_scores.items():
-        parent_obj = store.parentChunks.get(parent_id)
+        parent_score[parentId].append(score)
+        child_matches[parentId].append(child.content)
+    retrieve_results=[]
+    for parent_id,scores in parent_score.items():
+        parent_obj=store.parent_chunks.get(parent_id)
         if parent_obj:
-            # Lấy điểm số cao nhất trong các child thuộc parent này làm điểm đại diện
-            best_score = max(scores)
-            
-            retrieved_results.append(
+            best_score=max(scores)
+            retrieve_results.append(
                 RetrievedChunk(
-                    parent=parent_obj,
-                    score=best_score,
-                    matched_children=parent_matched_children[parent_id]
+                        parent=parent_obj,
+                        score=best_score,
+                        matched_children=child_matches[parent_id]
+                    )
                 )
-            )
-            
-    retrieved_results.sort(key=lambda x: x.score, reverse=True)
-    return retrieved_results[:top_k]
+    retrieve_results.sort(key=lambda x: x.score,reverse=True)
+    return retrieve_results[:Query.top_k]
+
+    
 if __name__ == "__main__":
     myStore = VectorStore()
-    res = loaddoc("test.txt")
-    
-    if res is not None:
-        doc_id = myStore.add(res)
-        print(f"Đã thêm Document thành công! ID: {doc_id}")
-        print(f"Tổng số Child Chunks: {len(myStore.childChunk)}")
-        print(f"Tổng số Parent Chunks: {len(myStore.parentChunks)}\n")
-        
+    res1 = loaddoc("thanhpho.txt")
+
+    res2 = loaddoc("maybay.md")
+    if res2 is not None and res1 is not None:
+        doc_id = myStore.add(res1)
+        doc_id= myStore.add(res2)
         print("--- TEST RETRIEVE (PARENT-CHILD) ---")
-        query_str = "Tell me about trinh la gi"
-        results = retrieve(query_str, myStore, top_k=2)
+        query_str = "Hãy giới thiệu cho tôi về thành phố Hồ Chí Minh như nét đẹp,đặc sản"
+        top_k=3
+        trv=Query(text=query_str,top_k=top_k)
+        results = retrieve(trv, myStore, oversample=3)
         
         for idx, res_chunk in enumerate(results, 1):
             print(f"\n[Kết quả {idx}] Score: {res_chunk.score:.4f}")
+            print(f"DocidSection: {res_chunk.parent.doc_id}")
             print(f"Parent Section: {res_chunk.parent.section}")
             print(f"Parent Content (rút gọn): {res_chunk.parent.content[:150]}...")
             print(f"Số lượng matched children: {len(res_chunk.matched_children)}")
