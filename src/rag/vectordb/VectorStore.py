@@ -139,15 +139,4 @@ class VectorStore(DocumentStore):
         store.children_in_parent = data.get("children_in_parent", {})
         return store
 
-if __name__ == "__main__":
-    store = VectorStore()
-    res = loaddoc("maybay.md")
-    if res:
-        store.add(res,"History")
-        
-        store.save()
-        
-        loaded_store = VectorStore.load()
-        print(f"Số lượng Document đã tải: {len(loaded_store.documents)}")
-        print(f"Số lượng Child Chunks đã tải: {len(loaded_store.child_chunks)}")
     
