@@ -108,3 +108,30 @@ class DocumentStore:
             self.parent_chunks.pop(parent_id, None)
         del self.documents[doc_id]
         return removed_children
+    def get_document(self, doc_id: str) -> Optional[Document]:
+        return self.documents.get(doc_id)
+
+    def get_parent(self, parent_id: str) -> Optional[ParentChunk]:
+        return self.parent_chunks.get(parent_id)
+
+    def get_child(self, child_id: str) -> Optional[ChildChunk]:
+        return self.child_chunks.get(child_id)
+
+    def get_parents_by_document(self, doc_id: str) -> list[ParentChunk]:
+        parent_ids = self.parents_in_doc.get(doc_id, [])
+        return [self.parent_chunks[pid] for pid in parent_ids if pid in self.parent_chunks]
+
+    def get_children_by_parent(self, parent_id: str) -> list[ChildChunk]:
+        child_ids = self.children_in_parent.get(parent_id, [])
+        return [self.child_chunks[cid] for cid in child_ids if cid in self.child_chunks]
+
+    def get_children_by_document(self, doc_id: str) -> list[ChildChunk]:
+        all_children = []
+        parent_ids = self.parents_in_doc.get(doc_id, [])
+        for pid in parent_ids:
+            child_ids = self.children_in_parent.get(pid, [])
+            for cid in child_ids:
+                if cid in self.child_chunks:
+                    all_children.append(self.child_chunks[cid])
+        return all_children
+    
