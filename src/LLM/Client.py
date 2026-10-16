@@ -29,10 +29,10 @@ def reset_usage():
     for k in USAGE:
         USAGE[k] = 0
 
-def call_llm(message, tools=None):
+def call_llm(messages, tools=None):
     kwargs = {
         "model": MODEL,
-        "messages": message,
+        "messages": messages,
         "temperature": 0
     }
 
@@ -41,10 +41,10 @@ def call_llm(message, tools=None):
     if tools:
         kwargs["tools"] = tools
 
-    respone = None
+    response = None
     for attempt in range(RETRIES):
         try:
-            respone = client.chat.completions.create(**kwargs)
+            response = client.chat.completions.create(**kwargs)
             break
         except Exception as exc:
             status = getattr(exc, "status_code", None)
@@ -55,15 +55,15 @@ def call_llm(message, tools=None):
             print(f"[llm] HTTP {status or type(exc).__name__} - thử lại {attempt + 1}/{RETRIES - 1} sau {wait}s...")
             time.sleep(wait)
 
-    prompt_tokens = respone.usage.prompt_tokens
-    completion_tokens = respone.usage.completion_tokens
+    prompt_tokens = response.usage.prompt_tokens
+    completion_tokens = response.usage.completion_tokens
 
     USAGE["calls"] += 1
     USAGE["prompt_tokens"] += prompt_tokens
     USAGE["completion_tokens"] += completion_tokens
     USAGE["max_prompt"] = max(USAGE["max_prompt"], prompt_tokens)
 
-    return respone.choices[0].message
+    return response.choices[0].message
 
 def call_llm_stream(message, tools = None):
     kwargs = {
