@@ -22,7 +22,7 @@ TOOLS = [
                     "type": "string",
                     "description": "Nội dung cần tìm kiếm"
                 },
-                "k": {
+                "top_k": {
                     "type": "integer",
                     "description": "Số lượng đoạn văn cần lấy (mặc định 3)"
                 }
@@ -55,10 +55,6 @@ TOOLS = [
                 "doc_id": {
                     "type": "string",
                     "description": "Mã tài liệu cần sửa"
-                },
-                "title": {
-                    "type": "string",
-                    "description": "Tiêu đề mới của tài liệu"
                 },
                 "content": {
                     "type": "string",
