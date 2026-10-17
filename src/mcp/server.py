@@ -24,6 +24,7 @@ logger = setup_logger()
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 RAW_DIR = PROJECT_ROOT / "data" / "raw"
 STORE_PATH = PROJECT_ROOT / "document_store_cache.json"
+SUPPORTED_EXTENSIONS = {".txt", ".md"}
 
 
 # ============================================================
@@ -31,18 +32,22 @@ STORE_PATH = PROJECT_ROOT / "document_store_cache.json"
 # ============================================================
 
 def get_raw_files_signature() -> dict[str, int]:
-    """
-    Lấy thời gian sửa đổi của các file TXT.
-    Nếu file thay đổi, signature sẽ thay đổi theo.
-    """
+    """Lấy thời gian sửa đổi của các file TXT và Markdown."""
     signature = {}
 
     if not RAW_DIR.is_dir():
         return signature
 
-    for file_path in sorted(RAW_DIR.glob("*.txt")):
-        relative_path = file_path.relative_to(PROJECT_ROOT).as_posix()
-        signature[relative_path] = file_path.stat().st_mtime_ns
+    for file_path in sorted(RAW_DIR.iterdir()):
+        if (
+            file_path.is_file()
+            and file_path.suffix.lower() in SUPPORTED_EXTENSIONS
+        ):
+            relative_path = file_path.relative_to(
+                PROJECT_ROOT
+            ).as_posix()
+
+            signature[relative_path] = file_path.stat().st_mtime_ns
 
     return signature
 
@@ -63,7 +68,13 @@ def build_vector_store() -> VectorStore:
     try:
         os.chdir(PROJECT_ROOT)
 
-        for file_path in sorted(RAW_DIR.glob("*.txt")):
+        for file_path in sorted(RAW_DIR.iterdir()):
+            if (
+                not file_path.is_file()
+                or file_path.suffix.lower() not in SUPPORTED_EXTENSIONS
+            ):
+                continue
+
             try:
                 document = loaddoc(file_path.name)
 
@@ -113,8 +124,8 @@ def build_vector_store() -> VectorStore:
 
 def load_vector_store() -> VectorStore:
     """
-    Load cache nếu dữ liệu TXT chưa thay đổi.
-    Nếu TXT thay đổi hoặc chưa có cache thì xây dựng lại.
+    Load cache nếu các file TXT/MD chưa thay đổi.
+    Nếu dữ liệu thay đổi hoặc chưa có cache thì xây dựng lại.
     """
     if not STORE_PATH.is_file():
         logger.info("Chưa có cache, bắt đầu tạo VectorStore.")
@@ -125,12 +136,11 @@ def load_vector_store() -> VectorStore:
             cache_data = json.load(file)
 
         cached_signature = cache_data.get("_raw_files_signature")
-
         current_signature = get_raw_files_signature()
 
         if cached_signature != current_signature:
             logger.info(
-                "File TXT đã thay đổi. Đang xây dựng lại VectorStore."
+                "File TXT/MD đã thay đổi. Đang xây dựng lại VectorStore."
             )
             return build_vector_store()
 
@@ -155,8 +165,8 @@ with contextlib.redirect_stdout(sys.stderr):
 
 def resolve_document_path(source: str) -> Path:
     """
-    Chỉ cho phép đọc/ghi file nằm trong data/raw.
-    Ngăn đường dẫn thoát ra ngoài thư mục dữ liệu.
+    Chỉ cho phép đọc/ghi file TXT hoặc Markdown
+    nằm trong data/raw.
     """
     path = (PROJECT_ROOT / source).resolve()
     raw_root = RAW_DIR.resolve()
@@ -164,8 +174,8 @@ def resolve_document_path(source: str) -> Path:
     if not path.is_relative_to(raw_root):
         raise ValueError("Đường dẫn tài liệu không hợp lệ.")
 
-    if path.suffix.lower() != ".txt":
-        raise ValueError("Chỉ hỗ trợ tài liệu TXT.")
+    if path.suffix.lower() not in SUPPORTED_EXTENSIONS:
+        raise ValueError("Chỉ hỗ trợ tài liệu TXT và Markdown.")
 
     return path
 

@@ -187,10 +187,15 @@ class MultiAgentSystem:
             "question": user_query,
             "intent": decision["intent"],
             "research_result": research_result,
+            "evidence": (
+                research_result.get("evidence", [])
+                if research_result else []
+            ),
             "evidence_check": evidence_check,
             "history": history,
             "answer": final_answer,
         }
+
 
 
 async def main():
