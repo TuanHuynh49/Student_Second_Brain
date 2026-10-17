@@ -1,3 +1,4 @@
+from __future__ import annotations
 from dataclasses import dataclass, field,asdict
 import json 
 from typing import List, Optional,Dict,Any
@@ -9,14 +10,13 @@ from src.rag.retrieval.cosin_similarity import cosine_similarity
 from src.rag.retrieval.bm25 import build_bm25_index,normalise_scores
 from src.rag.embeddings.embedding_helper import embed_tex,batch_embed_text
 from src.ingestion.chunking.Chunking_helper import loaddoc
-from src.rag.utils.metadata_utils import matches_metadata
 import os 
 from dotenv import load_dotenv
 load_dotenv()
 @dataclass
 class VectorStore(DocumentStore):
-    def add(self, doc: Document,subject:str=None) -> str:
-        doc_id = super().add(doc,subject)
+    def add(self, doc: Document, subject: str = None, child_max: int = 600, child_overlap: int = 80) -> str:
+        doc_id = super().add(doc, subject, child_max=child_max, child_overlap=child_overlap)
         chunks_to_embed = []
         chunk_ids = []
         for parent_id in self.parents_in_doc.get(doc_id, []):
@@ -28,7 +28,6 @@ class VectorStore(DocumentStore):
                     
         if chunks_to_embed:
             embeddings = batch_embed_text(chunks_to_embed)
-            
             for chunk_id, embedding in zip(chunk_ids, embeddings):
                 self.child_chunks[chunk_id].embedding_matrix = embedding
             
@@ -40,7 +39,6 @@ class VectorStore(DocumentStore):
         score_threshold: float = 0.0, 
         metadata: Optional[Dict[str, Any]] = None
     ) -> list[tuple[ChildChunk, float]]:
-        """Tìm kiếm Dense thuần túy kết hợp Metadata Filter và Score Threshold."""
         if not self.child_chunks:
             return []
 
@@ -48,9 +46,26 @@ class VectorStore(DocumentStore):
         results = []
 
         for chunk in self.child_chunks.values():
-            if not matches_metadata(chunk.metadata, metadata):
-                continue
-            
+            subject_filter = metadata.get('subject') if metadata else None
+            doc_id_filter = metadata.get('doc_id') if metadata else None
+
+            if subject_filter:
+                if isinstance(subject_filter, list):
+                    if chunk.metadata.get('subject') not in subject_filter:
+                      continue
+                else:
+                    if chunk.metadata.get('subject') != subject_filter:
+                      continue
+
+            if doc_id_filter:
+                if isinstance(doc_id_filter, list):
+                   if chunk.doc_id not in doc_id_filter:
+                     continue
+                else:
+                   if chunk.doc_id != doc_id_filter:
+                      continue
+
+           
             if chunk.embedding_matrix is not None:
                 score = cosine_similarity(query_embedding, chunk.embedding_matrix)
                 
@@ -69,8 +84,28 @@ class VectorStore(DocumentStore):
         query_embedding = embed_tex(query)
         dense_scores = []
 
+        subject_filter = metadata.get('subject') if metadata else None
+        doc_id_filter = metadata.get('doc_id') if metadata else None
+
         for chunk in chunk_list:
-            if not matches_metadata(chunk.metadata, metadata):
+            filtered_out = False
+            if subject_filter:
+                if isinstance(subject_filter, list):
+                    if chunk.metadata.get('subject') not in subject_filter:
+                        filtered_out = True
+                else:
+                    if chunk.metadata.get('subject') != subject_filter:
+                        filtered_out = True
+
+            if doc_id_filter and not filtered_out:
+                if isinstance(doc_id_filter, list):
+                    if chunk.doc_id not in doc_id_filter:
+                        filtered_out = True
+                else:
+                    if chunk.doc_id != doc_id_filter:
+                        filtered_out = True
+
+            if filtered_out:
                 dense_scores.append(float('-inf'))
                 continue
             
@@ -99,8 +134,8 @@ class VectorStore(DocumentStore):
 
         hybrid_results.sort(key=lambda x: x[1], reverse=True)
         return hybrid_results[:top_k]
-    def save(self) -> None:
-        path= os.getenv("INDEX_SOURCE")
+    def save(self, path: Optional[str] = None) -> None:
+        path = path or os.getenv("INDEX_SOURCE")
         data = {
             "documents": {doc_id: asdict(doc) for doc_id, doc in self.documents.items()},
             "parent_chunks": {pid: asdict(p) for pid, p in self.parent_chunks.items()},
@@ -113,8 +148,8 @@ class VectorStore(DocumentStore):
             json.dump(data, f, ensure_ascii=False, indent=4,default=str)
         return True
     @classmethod
-    def load(cls) -> VectorStore:
-        path= os.getenv("INDEX_SOURCE")
+    def load(cls, path: Optional[str] = None) -> VectorStore:
+        path = path or os.getenv("INDEX_SOURCE")
         with open(path, "r", encoding="utf-8") as f:
            data = json.load(f)
 
@@ -138,5 +173,15 @@ class VectorStore(DocumentStore):
         store.parents_in_doc = data.get("parents_in_doc", {})
         store.children_in_parent = data.get("children_in_parent", {})
         return store
+    def clear_all(self) -> bool:
+     try:
+        self.documents.clear()
+        self.parent_chunks.clear()
+        self.child_chunks.clear()
+        self.parents_in_doc.clear()
+        self.children_in_parent.clear()
+        return True
+     except Exception as e:
+        return False
 
     

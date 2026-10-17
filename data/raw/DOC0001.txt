@@ -1,0 +1,103 @@
+# Ôn thi môn AIPR
+
+## 1. RAG (Retrieval-Augmented Generation)
+
+RAG là kỹ thuật kết hợp mô hình ngôn ngữ lớn (LLM) với hệ thống truy xuất thông tin (Information Retrieval). Thay vì chỉ dựa vào tri thức đã được “đóng băng” trong trọng số mô hình, RAG cho phép hệ thống tra cứu cơ sở dữ liệu hoặc kho tri thức bên ngoài trước khi sinh câu trả lời.
+
+### Quy trình hoạt động
+
+1. **Ingestion & Chunking**: Nạp tài liệu vào hệ thống và chia thành các đoạn nhỏ, có thể tổ chức theo đoạn Parent và Child.
+2. **Retrieval**: Truy xuất các đoạn liên quan nhất đến câu hỏi bằng Hybrid Search, kết hợp Vector Embedding và BM25.
+3. **Generation**: Đưa các đoạn được truy xuất vào prompt làm ngữ cảnh để LLM sinh câu trả lời, thường kèm trích dẫn nguồn.
+
+### Ý nghĩa
+
+RAG giúp câu trả lời bám sát dữ liệu bên ngoài, hỗ trợ cập nhật tri thức và tăng khả năng kiểm chứng nguồn.
+
+## 2. BM25 và tìm kiếm vector
+
+### BM25
+
+BM25 (Best Matching 25) là thuật toán xếp hạng tài liệu dựa trên tần suất từ khóa, gồm TF (Term Frequency) và IDF (Inverse Document Frequency). BM25 có cơ chế bão hòa tần suất và chuẩn hóa độ dài tài liệu, giúp hạn chế việc tài liệu dài được ưu tiên quá mức.
+
+### Dense Retrieval / Vector Search
+
+Dense Retrieval sử dụng mô hình embedding, chẳng hạn BERT hoặc Jina Embeddings, để chuyển văn bản thành các vector trong không gian ngữ nghĩa. Độ tương đồng giữa câu hỏi và đoạn văn thường được đo bằng Cosine Similarity.
+
+### Hybrid Search
+
+Hybrid Search kết hợp truy xuất từ khóa bằng BM25 và truy xuất ngữ nghĩa bằng Dense Retrieval:
+
+**Final_Score = alpha × Dense_Score + (1 − alpha) × BM25_Score**
+
+Phương pháp này vừa bắt được từ khóa chuyên ngành vừa nắm bắt ngữ cảnh câu hỏi.
+
+## 3. Kiến trúc ReAct Agent
+
+ReAct (Reasoning + Acting) kết hợp khả năng suy luận và hành động của LLM. Agent không sinh câu trả lời ngay mà thực hiện chu trình:
+
+1. **Thought**: Phân tích yêu cầu và xác định cần dùng công cụ nào.
+2. **Action**: Gọi công cụ thích hợp, ví dụ search, get hoặc update.
+3. **Observation**: Đọc kết quả công cụ, tiếp tục suy luận và lặp lại cho đến khi hoàn thành nhiệm vụ.
+
+## 4. Model Context Protocol (MCP)
+
+MCP là giao thức chuẩn hóa kết nối giữa LLM Agent với nguồn dữ liệu bên ngoài hoặc công cụ cục bộ. MCP giúp Agent tương tác với các hệ thống bên ngoài theo cách thống nhất, có cấu trúc và dễ mở rộng.
+
+### Các thành phần chính
+
+- **MCP Host**: Ứng dụng đang chứa Agent hoặc LLM, chịu trách nhiệm điều phối phiên làm việc và quyền truy cập.
+- **MCP Client**: Thành phần trong Host duy trì kết nối với MCP Server và gửi yêu cầu theo giao thức MCP.
+- **MCP Server**: Dịch vụ cung cấp dữ liệu hoặc khả năng thực thi công cụ cho Client.
+
+### Những khả năng MCP cung cấp
+
+- **Resources**: Các tài nguyên dữ liệu mà Server cung cấp cho Agent đọc, chẳng hạn tệp, tài liệu, bản ghi cơ sở dữ liệu hoặc nội dung theo URI.
+- **Tools**: Các hàm hoặc thao tác mà Agent có thể gọi, chẳng hạn tìm kiếm, đọc tài liệu, cập nhật dữ liệu hoặc thực hiện hành động trên hệ thống khác.
+- **Prompts**: Các mẫu hướng dẫn có cấu trúc, giúp chuẩn hóa cách Agent sử dụng dữ liệu và công cụ.
+
+### Cách MCP hoạt động
+
+1. Client kết nối tới MCP Server và khám phá các Resources, Tools hoặc Prompts được cung cấp.
+2. Agent lựa chọn khả năng phù hợp với yêu cầu người dùng.
+3. Client gửi lời gọi công cụ hoặc yêu cầu tài nguyên theo schema JSON đã định nghĩa.
+4. Server kiểm tra tham số, thực thi yêu cầu và trả về kết quả có cấu trúc.
+5. Agent sử dụng kết quả làm ngữ cảnh để tiếp tục suy luận hoặc trả lời người dùng.
+
+### Lợi ích và lưu ý
+
+MCP tách Agent khỏi chi tiết triển khai của từng nguồn dữ liệu hoặc công cụ, nhờ đó tăng tính tương thích, tái sử dụng và khả năng mở rộng. Các thao tác có tác dụng phụ cần được kiểm soát quyền truy cập, kiểm tra tham số và kiểm chứng kết quả sau khi thực hiện.
+
+### Cập nhật ghi nhớ nhanh về MCP
+
+- **Host điều phối**, **Client kết nối** và **Server cung cấp** dữ liệu hoặc công cụ.
+- **Resources** dùng để đọc dữ liệu; **Tools** dùng để thực hiện thao tác; **Prompts** dùng để chuẩn hóa hướng dẫn.
+- Quy trình cốt lõi: **kết nối/khám phá → chọn capability → gọi theo schema → Server thực thi → Agent xử lý kết quả**.
+- Khi Tool có tác dụng phụ, cần giới hạn quyền, xác thực tham số và đọc lại kết quả để kiểm chứng việc thực thi.
+
+## 5. Cơ chế kiểm chứng sau thao tác
+
+Các thao tác có tác dụng phụ như cập nhật hoặc lưu tài liệu phải được kiểm chứng. Sau khi gọi lệnh update, Agent cần gọi get để đọc lại tài liệu và xác nhận dữ liệu đã được lưu đúng.
+
+## 6. Câu hỏi ôn tập gợi ý
+
+1. RAG là gì? Nêu ba bước chính của quy trình RAG.
+2. So sánh BM25 và Dense Retrieval.
+3. Hybrid Search kết hợp các phương pháp nào? Viết công thức tính điểm.
+4. ReAct Agent gồm những giai đoạn nào?
+5. MCP là gì? Phân biệt MCP Host, MCP Client và MCP Server.
+6. Resources, Tools và Prompts trong MCP có vai trò gì?
+7. Vì sao schema JSON và cơ chế kiểm soát quyền truy cập quan trọng khi gọi Tool?
+8. Vì sao cần kiểm chứng sau thao tác update hoặc lưu tài liệu?
+
+## 7. Tóm tắt trọng tâm
+
+- RAG = LLM + truy xuất thông tin.
+- RAG gồm Ingestion & Chunking, Retrieval và Generation.
+- BM25 mạnh về khớp từ khóa; Dense Retrieval mạnh về tương đồng ngữ nghĩa.
+- Hybrid Search kết hợp ưu điểm của BM25 và Dense Retrieval.
+- ReAct gồm Thought, Action và Observation.
+- MCP chuẩn hóa kết nối giữa Host/Client, Agent, dữ liệu và công cụ.
+- MCP Server cung cấp Resources, Tools và Prompts theo giao diện có cấu trúc.
+- Lời gọi Tool cần tuân theo schema, được kiểm soát quyền và kiểm chứng kết quả.
+- Mọi thao tác sửa đổi dữ liệu cần được đọc lại để xác minh.

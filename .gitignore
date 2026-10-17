@@ -90,10 +90,20 @@ dmypy.json
 cython_debug/
 
 # ==========================================
-# THƯ MỤC DATA (Chặn không cho upload dữ liệu lên Git)
+# CẤU HÌNH BẢO MẬT & MÔI TRƯỜNG (Bắt buộc không lộ key)
 # ==========================================
-data/
-!data/.gitkeep  # (Tùy chọn) Giữ lại thư mục data trống nếu cần thiết trên git
+.env
+.env.*
+!.env.example
+
+# ==========================================
+# THƯ MỤC DATA & CACHE
+# ==========================================
+data/*
+!data/raw/
+!data/raw/**
+!data/.gitkeep
+document_store_cache.json
 
 # Visual Studio Code & IDEs
 .vscode/
