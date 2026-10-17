@@ -1,0 +1,17 @@
+# ==============================================================================
+# STUDENT SECOND BRAIN - PROJECT DEPENDENCIES (requirements.txt)
+# Python version: 3.11+
+# ==============================================================================
+
+# LLM & Core SDK
+openai>=1.40.0
+mcp>=1.0.0
+python-dotenv>=1.0.0
+
+# Retrieval & Vector Database
+rank-bm25>=0.2.2
+numpy>=1.24.0
+sentence-transformers>=3.0.0
+
+# Terminal UI & Formatting
+rich>=13.0.0
