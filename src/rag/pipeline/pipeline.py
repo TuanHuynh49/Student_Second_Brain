@@ -40,10 +40,7 @@ Is this claim supported by the context? Answer only "YES" or "NO"."""
 
 class StudentSecondBrainRAG:
     def __init__(self, store: Optional[VectorStore] = None):
-        """
-        Khởi tạo RAG Pipeline. 
-        Nếu không truyền store, hệ thống sẽ tự động load từ file index được định nghĩa trong .env.
-        """
+       
         self.store = store if store else VectorStore.load()
         api_key = os.getenv("GROQ_API_KEY")
         if not api_key:
@@ -51,7 +48,6 @@ class StudentSecondBrainRAG:
         self.client = Groq(api_key=api_key)
 
     def format_retrieved_chunk(self, retrieved_chunk: RetrievedChunk, index: int) -> str:
-        """Format đối tượng RetrievedChunk thành văn bản ngữ cảnh rõ ràng cho LLM."""
         parent = ParentChunk()
         parent=retrieved_chunk.parent
         source = parent.source or "None source"
@@ -61,7 +57,6 @@ class StudentSecondBrainRAG:
         return f"[{index + 1}] (Môn: {subject} | Nguồn: {source})|Section:{title}\nScore: {retrieved_chunk.score:.4f}\n{parent.content}"
 
     def build_rag_prompt(self, question: str, retrieved_chunks: list[RetrievedChunk], top_k: int = 3) -> list[dict]:
-        """Xây dựng cấu trúc messages gửi cho LLM từ danh sách Parent Chunks đã trích xuất."""
         context_text = "\n\n---\n\n".join(
             self.format_retrieved_chunk(rc, i) for i, rc in enumerate(retrieved_chunks[:top_k])
         )
@@ -86,13 +81,6 @@ class StudentSecondBrainRAG:
         oversample: int = 4,
         metadata: Optional[Dict[str, Any]] = None
     ) -> Tuple[str, List[RetrievedChunk]]:
-        """
-        Thực thi toàn bộ luồng RAG Pipeline:
-        1. Đóng gói Query object (hỗ trợ text, top_k, threshold, metadata filtering).
-        2. Truy xuất qua Retriever (Dense/Hybrid -> Rerank -> Parent-Child Aggregation).
-        3. Xây dựng Prompt ngữ cảnh và gọi LLM qua Groq API.
-        """
-        # 1. Đóng gói Query với các tham số điều hướng
         query = Query(
             text=query_text,
             top_k=top_k,
@@ -100,7 +88,6 @@ class StudentSecondBrainRAG:
             metadata=metadata or {}
         )
         
-        # 2. Gọi Retriever điều phối tìm kiếm
         results = retrieve(query, self.store, mode=mode, alpha=alpha, oversample=oversample)
         
         if not results:
@@ -113,11 +100,12 @@ class StudentSecondBrainRAG:
                 model="openai/gpt-oss-120b",    
                 messages=messages,
                 temperature=0.1,         
-                max_tokens=1024
+                max_tokens=1024 
             )
             
             answer = response.choices[0].message.content
-            return answer, results
+            total_tokens = response.usage.total_tokens
+            return answer, results,total_tokens
             
         except Exception as e:
             return f"Lỗi khi gọi Groq API: {str(e)}", results
