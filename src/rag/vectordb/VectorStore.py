@@ -105,7 +105,6 @@ class VectorStore(DocumentStore):
                     if chunk.doc_id != doc_id_filter:
                         filtered_out = True
 
-            # BẮT BUỘC phải append để giữ đúng độ dài bằng với chunk_list
             if filtered_out:
                 dense_scores.append(float('-inf'))
                 continue
@@ -174,5 +173,15 @@ class VectorStore(DocumentStore):
         store.parents_in_doc = data.get("parents_in_doc", {})
         store.children_in_parent = data.get("children_in_parent", {})
         return store
+    def clear_all(self) -> bool:
+     try:
+        self.documents.clear()
+        self.parent_chunks.clear()
+        self.child_chunks.clear()
+        self.parents_in_doc.clear()
+        self.children_in_parent.clear()
+        return True
+     except Exception as e:
+        return False
 
     
