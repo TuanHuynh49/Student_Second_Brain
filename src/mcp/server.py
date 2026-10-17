@@ -9,8 +9,8 @@ from mcp.server.mcpserver import MCPServer
 from src.mcp.logger import setup_logger
 from src.mcp.utils import normalize_text, is_empty
 from src.ingestion.chunking.Chunking_helper import loaddoc
-from src.models.VectorStore import VectorStore
-from src.ingestion.retrieving.Retriever import retrieve
+from src.rag.vectordb.VectorStore import VectorStore
+from src.rag.retrieval.Retriever import retrieve
 from src.models.Query import Query
 
 

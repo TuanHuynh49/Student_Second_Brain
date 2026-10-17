@@ -1,3 +1,4 @@
+from __future__ import annotations
 from dataclasses import dataclass, field,asdict
 import json 
 from typing import List, Optional,Dict,Any
@@ -99,8 +100,8 @@ class VectorStore(DocumentStore):
 
         hybrid_results.sort(key=lambda x: x[1], reverse=True)
         return hybrid_results[:top_k]
-    def save(self) -> None:
-        path= os.getenv("INDEX_SOURCE")
+    def save(self, path: Optional[str] = None) -> None:
+        path = path or os.getenv("INDEX_SOURCE")
         data = {
             "documents": {doc_id: asdict(doc) for doc_id, doc in self.documents.items()},
             "parent_chunks": {pid: asdict(p) for pid, p in self.parent_chunks.items()},
@@ -113,8 +114,8 @@ class VectorStore(DocumentStore):
             json.dump(data, f, ensure_ascii=False, indent=4,default=str)
         return True
     @classmethod
-    def load(cls) -> VectorStore:
-        path= os.getenv("INDEX_SOURCE")
+    def load(cls, path: Optional[str] = None) -> VectorStore:
+        path = path or os.getenv("INDEX_SOURCE")
         with open(path, "r", encoding="utf-8") as f:
            data = json.load(f)
 
