@@ -1,118 +1,123 @@
+
+import asyncio
 import sys
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent
 sys.path.append(str(PROJECT_ROOT))
 
-from src.models.Schemas import Tool
-from src.agent.Memory import SlidingWindowMemory
+from mcp import Client, StdioServerParameters
+
 from src.agent.Loop import run_agent
-from src.LLM.Client import USAGE, reset_usage 
+from src.agent.Memory import SlidingWindowMemory
+from src.LLM.Client import USAGE, reset_usage
+from src.models.Schemas import Tool
 
-from src.mcp.server import search, get, update
 
-TOOLS = [
-    Tool(
-        name="search",
-        description="Tìm kiếm tài liệu học tập, bài giảng trong kho tri thức theo nội dung ngữ nghĩa.",
-        parameters={
-            "type": "object",
-            "properties": {
-                "query": {
-                    "type": "string",
-                    "description": "Nội dung cần tìm kiếm"
-                },
-                "k": {
-                    "type": "integer",
-                    "description": "Số lượng đoạn văn cần lấy (mặc định 3)"
-                }
-            },
-            "required": ["query"]
-        },
-        fn=search
-    ),
-    Tool(
-        name="get",
-        description="Đọc toàn bộ nội dung chi tiết của một tài liệu dựa theo mã doc_id (ví dụ: DOC0001, test).",
-        parameters={
-            "type": "object",
-            "properties": {
-                "doc_id": {
-                    "type": "string",
-                    "description": "Mã định dah của tài liệu"
-                }
-            },
-            "required": ["doc_id"]
-        },
-        fn=get
-    ),
-    Tool(
-        name="update",
-        description="Cập nhật tiêu đề và nội dung mới cho tài liệu đã có, đồng thời tự động lập lại chỉ mục tìm kiếm.",
-        parameters={
-            "type": "object",
-            "properties": {
-                "doc_id": {
-                    "type": "string",
-                    "description": "Mã tài liệu cần sửa"
-                },
-                "title": {
-                    "type": "string",
-                    "description": "Tiêu đề mới của tài liệu"
-                },
-                "content": {
-                    "type": "string",
-                    "description": "Nội dung mới của tài liệu"
-                }
-            },
-            "required": ["doc_id", "title", "content"]
-        },
-        fn=update
+def extract_tool_text(result) -> str:
+    """Lấy phần text từ kết quả MCP."""
+    parts = []
+
+    for block in result.content or []:
+        text = getattr(block, "text", None)
+        if text:
+            parts.append(text)
+
+    content = "\n\n".join(parts)
+
+    if getattr(result, "is_error", False):
+        return f"Error: {content or 'MCP tool thất bại.'}"
+
+    return content or "Tool không trả về nội dung."
+
+
+def build_tools(client, server_tools) -> list[Tool]:
+    """Chuyển schema MCP thành schema tool dùng bởi ReAct."""
+    tools = []
+
+    for server_tool in server_tools:
+
+        async def call_mcp_tool(
+            _tool_name=server_tool.name,
+            **arguments
+        ):
+            result = await client.call_tool(
+                _tool_name,
+                arguments
+            )
+            return extract_tool_text(result)
+
+        tools.append(
+            Tool(
+                name=server_tool.name,
+                description=server_tool.description or "",
+                parameters=server_tool.input_schema,
+                fn=call_mcp_tool,
+            )
+        )
+
+    return tools
+
+
+async def main():
+    print("=" * 65)
+    print("STUDENT SECOND BRAIN")
+    print("RAG + ReAct + MCP")
+    print("=" * 65)
+
+    server = StdioServerParameters(
+        command="uv",
+        args=["run", "python", "-m", "src.mcp.server"],
     )
-]
 
-def main():
-    print("=" * 65)
-    print("🎓 CHÀO MỪNG BẠN ĐẾN VỚI HỆ THỐNG STUDENT SECOND BRAIN 🎓")
-    print("   (Hệ thống tích hợp: RAG Ingestion + MCP Tools + ReAct Agent)")
-    print("=" * 65)
-    print("💡 Mẹo thử nghiệm:")
-    print("   - Tra cứu: 'RAG là gì và hoạt động như thế nào?'")
-    print("   - Đọc tài liệu: 'Đọc chi tiết tài liệu DOC0001'")
-    print("   - Sửa & Xác minh: 'Cập nhật tài liệu test với nội dung ôn thi AIPR'")
-    print("   - Gõ 'exit' hoặc 'quit' để thoát chương trình.\n")
-
-
-    session_memory = SlidingWindowMemory(max_messages=5)
+    session_memory = SlidingWindowMemory(max_messages=10)
     reset_usage()
 
-    while True:
-        try:
-            user_input = input("👤 Sinh viên: ").strip()
-            if not user_input:
-                continue
-            if user_input.lower() in {"exit", "quit"}:
-                print("\n Bye Bye Bye 👋")
-                print(f"📊 Token usage: {USAGE}")
+    async with Client(server) as client:
+        # Lấy schema trực tiếp từ MCP Server.
+        server_tools = (await client.list_tools()).tools
+        tools = build_tools(client, server_tools)
+
+        print("\nCác MCP tools đã khám phá:")
+        for tool in tools:
+            print(f"- {tool.name}: {tool.description}")
+
+        if not tools:
+            raise RuntimeError("MCP Server không cung cấp tool nào.")
+
+        while True:
+            try:
+                user_input = input("\nSinh viên: ").strip()
+
+                if not user_input:
+                    continue
+
+                if user_input.casefold() in {"exit", "quit"}:
+                    print("\nĐã thoát Student Second Brain.")
+                    print(f"Token usage: {USAGE}")
+                    break
+
+                print("\nSecond Brain đang xử lý...")
+
+                answer = await run_agent(
+                    user_task=user_input,
+                    tools=tools,
+                    memory=session_memory,
+                    max_step=5,
+                )
+
+                print(f"\nPhản hồi:\n{answer}")
+                print("-" * 65)
+
+            except KeyboardInterrupt:
+                print("\nĐã dừng chương trình.")
                 break
-
-            print ("\n🤖 Second Brain đang suy nghĩ...")
-            answer = run_agent(
-                user_task=user_input,
-                tools=TOOLS,
-                memory=session_memory,
-            )
-
-            print(f"\n🧠 Phản hồi:\n{answer}\n")
-            print("-" * 65)
-
-        except KeyboardInterrupt:
-            print("\n Đã dừng chương trình.")
-            break
-        except Exception as e:
-            print(f"/n Ohnooooooooooooooooooooooooooooooo lỗi r: {e}\n")
+            except Exception as exc:
+                print(
+                    f"\nLỗi xử lý câu hỏi: "
+                    f"{type(exc).__name__}: {exc}"
+                )
 
 
 if __name__ == "__main__":
-    main()
-         
+    asyncio.run(main())

@@ -118,6 +118,10 @@ def jina_embeddings(
         payload["dimensions"] = dimensions
 
     resp = requests.post(url, headers=headers, json=payload, timeout=timeout)
+    if not resp.ok:
+        print("Jina status:", resp.status_code)
+        print("Jina response:", resp.text)
+
     resp.raise_for_status()
     result = resp.json()
 
