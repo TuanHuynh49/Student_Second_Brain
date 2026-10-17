@@ -54,9 +54,10 @@ class AnswerAgent:
 
         
         evidence_parts = []
-
+        
         for index, item in enumerate(evidence, start=1):
             if isinstance(item, dict):
+                
                 evidence_parts.append(
                     f"Evidence {index}\n"
                     f"Score: {item.get('score', 'N/A')}\n"

@@ -72,6 +72,7 @@ class DocumentStore:
         parents = []
         for idx, p in enumerate(raw_parents, 1):
             p.doc_id = doc.doc_id
+            p.source = doc.source
             p.metadata["subject"]=doc.metadata.get("subject",None)
             p.parent_id = f"parent_{doc.title}_{idx:03d}"
             parents.append(p)

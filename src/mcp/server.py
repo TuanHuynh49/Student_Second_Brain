@@ -124,8 +124,8 @@ def build_vector_store() -> VectorStore:
 
 def load_vector_store() -> VectorStore:
     """
-    Load cache nếu các file TXT/MD chưa thay đổi.
-    Nếu dữ liệu thay đổi hoặc chưa có cache thì xây dựng lại.
+    Load cache nếu dữ liệu TXT/MD chưa thay đổi.
+    Nếu file thay đổi hoặc chưa có cache thì xây dựng lại VectorStore.
     """
     if not STORE_PATH.is_file():
         logger.info("Chưa có cache, bắt đầu tạo VectorStore.")
@@ -150,7 +150,9 @@ def load_vector_store() -> VectorStore:
             return VectorStore.load()
 
     except (OSError, json.JSONDecodeError, AttributeError, TypeError):
-        logger.exception("Cache không hợp lệ. Đang tạo lại VectorStore.")
+        logger.exception(
+            "Cache không hợp lệ. Đang tạo lại VectorStore."
+        )
         return build_vector_store()
 
 
@@ -199,9 +201,11 @@ def search(query: str, top_k: int = 5) -> str:
         results = retrieve(qr, vector_store)
 
         for idx, res_chunk in enumerate(results, 1):
+                    parent = res_chunk.parent
                     results_chunk.append(
                     f"[Kết quả {idx}] Score: {res_chunk.score:.4f}\n"
                     f"Doc ID: {res_chunk.parent.doc_id}\n"
+                    f"Source: {parent.source or 'N/A'}\n"
                     f"Parent Section: {res_chunk.parent.section}\n"
                     f"Parent Content: {res_chunk.parent.content}...\n"
                     f"Số lượng matched children: {len(res_chunk.matched_children)}"
