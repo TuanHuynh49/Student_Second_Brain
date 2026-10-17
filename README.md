@@ -4,175 +4,141 @@
 > **Khoa**: Công nghệ Thông tin - Trường Đại học Sư phạm Kỹ thuật TP.HCM (HCMUTE)  
 > **Giảng viên hướng dẫn**: ThS. Nguyễn Đăng Quang  
 > **Nhóm sinh viên thực hiện**:
-> - **Trần Lê Dũng** (MSSV: 24110084) — *Data Ingestion, Parent-Child Chunking & VectorStore*
+> - **Trần Lê Dũng** (MSSV: 24110084) — *Data, Ingestion, Parent-Child Chunking & VectorStore*
 > - **Huỳnh Lê Anh Tuấn** (MSSV: 24110143) — *Agent ReAct Loop, Sliding Memory, CLI Gateway & Benchmark*
 > - **Lê Khánh Duy** (MSSV: 24110082) — *MCP Server (stdio), Tool Contracts, Atomic Rollback & Multi-Agent*
 
 ---
 
-## ⚡ HƯỚNG DẪN CHẠY DEMO NHANH (QUICK START)
+## ⚡ 1. QUICK START — CHẠY DEMO TRONG 1 BƯỚC DUY NHẤT
 
-Chỉ với **3 bước đơn giản** để khởi động và trải nghiệm toàn bộ hệ thống trên máy tính:
+Giảng viên và người chấm có thể khởi động hệ thống ngay lập tức bằng **1 trong các cách sau**:
 
-### Bước 1: Kích hoạt môi trường và cài đặt thư viện
-Mở Terminal tại thư mục gốc `Student_Second_Brain`:
+### Cách 1: Chạy lệnh trực tiếp qua Terminal (Khuyến nghị)
 
-* **Cách 1: Dùng công cụ `uv` (Khuyến nghị - Nhanh nhất)**:
-  ```bash
-  uv venv
-  uv pip install -r requirements.txt
-  ```
-
-* **Cách 2: Dùng Python chuẩn (Virtual Environment)**:
-  ```bash
-  # 1. Tạo môi trường ảo
-  python -m venv .venv
-
-  # 2. Kích hoạt môi trường:
-  # Trên Windows PowerShell:
-  .\.venv\Scripts\Activate.ps1
-  # Trên Windows CMD:
-  .\.venv\Scripts\activate.bat
-  # Trên Linux / macOS:
-  source .venv/bin/activate
-
-  # 3. Cài đặt các thư viện phụ thuộc:
-  pip install -r requirements.txt
-  ```
-
----
-
-### Bước 2: Thiết lập cấu hình biến môi trường (`.env`)
-
-Sao chép tệp mẫu [.env.example](.env.example) thành `.env`:
-```bash
-# Trên Windows:
-copy .env.example .env
-
-# Trên Linux / macOS:
-cp .env.example .env
-```
-
-Mở tệp `.env` vừa tạo và điền các khóa API của bạn:
-```env
-# 1. Cấu hình mô hình ngôn ngữ (OpenAI API hoặc Proxy tương thích)
-OPENAI_API_KEY=sk-...                        # Điền khóa API của bạn
-OPENAI_BASE_URL=https://api.openai.com/v1     # Hoặc proxy trường: https://nttcodex.com/v1
-OPENAI_MODEL=gpt-4o-mini                    # Hoặc: gpt-6.1-sol
-MODEL=gpt-4o-mini                           # Đồng bộ mô hình cho Client
-
-# 2. Cấu hình kho tài liệu học tập
-DOC_PATH=data/raw                           # Thư mục chứa bài giảng DOC0001 -> DOC0008
-
-# 3. Cấu hình Dense Embedding
-MODEL_EMBEDING=jina-embeddings-v3
-JINA_API_KEY=jina_...                       # Điền khóa Jina API của bạn
-
-# 4. Cấu hình Reranker & Đánh giá RAG
-MODEL_RERANK=cross-encoder/ms-marco-MiniLM-L-6-v2
-GROQ_API_KEY=gsk_...                        # Khóa Groq API (dùng cho run_tests)
-```
-
----
-
-### Bước 3: Khởi động chương trình chính
-
-Chạy lệnh duy nhất để vào giao diện trợ lý học tập:
 ```bash
 python main.py
 ```
-*(Hoặc `uv run python main.py`)*
+*(Nếu máy đã cài `uv`: `uv run python main.py`)*
+
+### Cách 2: Chạy qua Makefile (Chuẩn quy định của môn học)
+
+```bash
+make demo
+```
+
+### Cách 3: Nhấp đúp chuột trên Windows
+Nhấp đúp chuột vào tệp **`run.bat`** ở thư mục gốc của dự án để khởi động ngay.
 
 ---
 
-## 🎯 KỊCH BẢN DEMO THỰC TẾ (DEMO SHOWCASE)
+## 🎯 2. KỊCH BẢN CÂU HỎI THỬ NGHIỆM TẠI CHỖ (TEST PROMPTS)
 
-Khi màn hình hiển thị dấu nhắc `Nhập câu hỏi (gõ exit để thoát):`, bạn có thể thử ngay 3 tình huống tiêu biểu tương ứng với 3 tầng năng lực của hệ thống:
+Khi giao diện chat `Student Second Brain >` xuất hiện, copy các câu mẫu sau để kiểm tra toàn bộ 3 trụ cột của hệ thống:
 
-### 1. Tình huống 1: Tra cứu RAG kết hợp đa tác tử (Multi-Agent Hybrid RAG)
-* **Câu hỏi mẫu**:
-  ```text
-  Cơ chế bão hòa tần suất (saturation) và chuẩn hóa độ dài trong thuật toán BM25 có tác dụng gì?
-  ```
-* **Hiện tượng quan sát**:
-  1. `Coordinator` phân loại intent `search_documents`.
-  2. `Researcher` gọi công cụ MCP `search` (kết hợp Dense Cosine Similarity và BM25 từ khóa).
-  3. `EvidenceChecker` thẩm định bằng chứng đạt yêu cầu (`sufficient`).
-  4. `AnswerAgent` sinh câu trả lời kèm bảng trích dẫn nguồn (**SOURCES & EVIDENCE**) có Score, Doc ID (`DOC0001`).
-  5. Bảng thống kê chi phí **Token USAGE & COST** được in rõ ràng.
+### Kịch bản 1: Hỏi đáp tài liệu có bằng chứng (Multi-Agent RAG)
+Hệ thống kích hoạt Coordinator $\rightarrow$ Researcher $\rightarrow$ EvidenceChecker $\rightarrow$ AnswerAgent để trích xuất và hiển thị nguồn minh chứng:
+```text
+Cơ chế bão hòa tần suất (saturation) và chuẩn hóa độ dài trong thuật toán BM25 có tác dụng gì?
+```
+* **Kết quả quan sát**: Bảng **SOURCES & EVIDENCE** hiển thị Score, Doc ID (`DOC0001`), Section và bảng thống kê chi phí Token USAGE.
 
-### 2. Tình huống 2: Chống ảo giác - Từ chối khi ngoài tài liệu (Calibration / Anti-Hallucination)
-* **Câu hỏi mẫu**:
-  ```text
-  Trình bày chi tiết công thức tính toán độ phức tạp của giải thuật Dijkstra trong không gian 4 chiều?
-  ```
-* **Hiện tượng quan sát**:
-  1. Hệ thống tìm kiếm trong kho tài liệu nhưng không có bằng chứng liên quan.
-  2. `EvidenceChecker` phát hiện bằng chứng không đầy đủ (`insufficient`).
-  3. Hệ thống kiên quyết từ chối bịa đặt: *"Tôi không biết câu trả lời vì không tìm thấy thông tin phù hợp trong tài liệu."*
+### Kịch bản 2: Thao tác ghi có kiểm chứng (ReAct Side-Effect + Verify)
+Hệ thống tự động kích hoạt chu trình ReAct Loop: `get_document` $\rightarrow$ `update_document` $\rightarrow$ `get_document` đối soát lại:
+```text
+Cập nhật ghi chú về MCP vào doc_DOC0001 và kiểm tra lại
+```
+* **Kết quả quan sát**: Agent đọc tài liệu trước khi sửa, thực hiện ghi đè nội dung và bắt buộc gọi lại lệnh đọc lần 2 để kiểm chứng trạng thái trước khi kết luận `Final Answer`.
 
-### 3. Tình huống 3: Hành động ReAct có đối soát (Side-Effect + Verification Protocol)
-* **Câu lệnh mẫu**:
-  ```text
-  Cập nhật ghi chú về MCP vào doc_DOC0001 và kiểm tra lại
-  ```
-* **Hiện tượng quan sát**:
-  1. `Coordinator` phân loại intent `react_tools`.
-  2. ReAct Loop tự kích hoạt chuỗi hành động:
-     - `Thought` $\rightarrow$ `Action: get[doc_DOC0001]` (đọc nội dung hiện tại).
-     - `Thought` $\rightarrow$ `Action: update[doc_DOC0001, ...]` (cập nhật nội dung mới).
-     - `Thought` $\rightarrow$ `Action: get[doc_DOC0001]` (**Bắt buộc gọi lại lệnh đọc để đối soát**).
-  3. In thông báo xác nhận trạng thái tài liệu đã được sửa đổi an toàn.
+### Kịch bản 3: Chống ảo giác & Từ chối khi không có dữ liệu (Anti-Hallucination Calibration)
+Thử nghiệm với câu hỏi không tồn tại trong giáo trình:
+```text
+Chính sách hoàn tiền học phí khi bảo lưu kết quả học tập tại trường là gì?
+```
+* **Kết quả quan sát**: Hệ thống từ chối trả lời, kiên quyết không bịa đặt thông tin.
 
-*(Gõ `exit` để thoát khỏi hệ thống).*
+*(Nhập `exit` để thoát chương trình).*
 
 ---
 
-## 📊 LỆNH CHẠY ĐÁNH GIÁ TỰ ĐỘNG (EVALUATION BENCHMARK)
+## 📊 3. LỆNH CHẠY ĐÁNH GIÁ TỰ ĐỘNG (EVAL BENCHMARK)
 
-Để kiểm thử độ chính xác trên toàn bộ **36 câu hỏi** trong [tests/testset.jsonl](tests/testset.jsonl) (gồm 12 câu ngoài phạm vi `no_answer = true`) và tự động xuất nhật ký JSONL:
+Để chạy tự động toàn bộ bộ kiểm thử 36 câu hỏi (`tests/testset.jsonl`), đo lường độ chính xác và xuất nhật ký chạy vào thư mục `logs/`:
 
 ```bash
 python -m tests.run_tests
 ```
-
-* **Kết quả đo lường**: Tỷ lệ trả lời chính xác, độ trung thực (Faithfulness), tỷ lệ nhận diện đúng câu hỏi không có đáp án, và tổng chi phí Token USAGE theo từng câu hỏi.
-* **Tệp đầu ra**: Được lưu tự động vào thư mục `logs/run_*.jsonl`.
-
----
-
-## 📁 CẤU TRÚC THƯ MỤC HỆ THỐNG
-
-```text
-Student_Second_Brain/
-├── data/
-│   └── raw/                    # 8 bài học gốc (DOC0001.txt -> DOC0008.md)
-├── logs/                       # Nhật ký các phiên chạy thực nghiệm (.jsonl)
-├── src/
-│   ├── LLM/                    # Kết nối mô hình ngôn ngữ & đo lường Token USAGE
-│   ├── agent/                  # Vòng lặp tự chủ ReAct Loop, Bộ nhớ trượt (Sliding Memory), Parser
-│   ├── mcp/                    # MCP Server (stdio), Tool Adapter (Dynamic Discovery)
-│   ├── multi_agent/            # Hệ thống đa tác tử (Coordinator, Researcher, Checker, Answer)
-│   ├── prompts/                # Toàn văn System Prompts đã chuẩn hóa tiếng Việt
-│   └── rag/                    # Đường ống Hybrid RAG, Parent-Child Chunking, BM25 & VectorStore
-├── tests/
-│   ├── testset.jsonl           # Bộ dữ liệu đánh giá 36 câu hỏi benchmark
-│   └── run_tests.py            # Kịch bản tự động đo lường độ chính xác và chi phí
-├── .env.example                # Bản mẫu cấu hình an toàn (không chứa key)
-├── .gitignore                  # Cấu hình bảo mật, chặn tuyệt đối lộ file .env
-├── ai-usage.md                 # Bản khai báo sử dụng AI của cả 3 thành viên
-├── requirements.txt            # Danh sách thư viện phụ thuộc Python 3.11+
-├── main.py                     # Điểm khởi chạy chính của hệ thống
-└── README.md                   # Hướng dẫn cài đặt và vận hành
+*(Hoặc dùng lệnh make)*:
+```bash
+make eval
 ```
 
 ---
 
-## 📋 DANH MỤC SẢN PHẨM NỘP BÀI (DELIVERABLES)
+## 🛠️ 4. HƯỚNG DẪN TÁI LẬP MÔI TRƯỜNG TỪ ĐẦU (COLD-START SETUP)
 
-* [x] **`report.docx`**: Báo cáo kỹ thuật 8–9 trang kèm Phụ lục A (Prompt), Phụ lục B (Trace), Phụ lục C (`ai-usage.md`).
-* [x] **Repo Code (.git)**: Thư mục mã nguồn lưu trữ đầy đủ commit history của cả 3 thành viên (`401546a` Dũng, `3e9e5bf` Tuấn, `7ffd454` Duy).
-* [x] **`logs/`**: Thư mục chứa $\ge 3$ phiên chạy thực tế có timestamp và bảng USAGE token.
-* [x] **`tests/testset.jsonl`**: Bộ kiểm thử gồm 36 câu hỏi (với 12 câu `no_answer = true`).
-* [x] **`ai-usage.md`**: Bản tuyên bố liêm chính học thuật hợp nhất.
-* [x] **`README.md`**: Hướng dẫn 1 lệnh khởi chạy và tái lập toàn bộ đồ án.
+Nếu chuyển mã nguồn sang một máy tính mới hoàn toàn, thực hiện 2 bước thiết lập sau:
+
+### Bước 1: Khởi tạo môi trường ảo và cài đặt thư viện
+```bash
+# 1. Tạo và kích hoạt môi trường ảo
+python -m venv .venv
+
+# Trên Windows (PowerShell):
+.\.venv\Scripts\Activate.ps1
+# Trên Linux / macOS:
+source .venv/bin/activate
+
+# 2. Cài đặt các thư viện cần thiết
+pip install -r requirements.txt
+```
+*(Hoặc dùng Makefile)*:
+```bash
+make setup
+```
+
+### Bước 2: Khởi tạo file cấu hình môi trường (.env)
+```bash
+# Copy file template mẫu sang .env
+copy .env.example .env    # Trên Windows
+cp .env.example .env      # Trên Linux/macOS
+```
+Mở file `.env` vừa tạo và điền các khóa API của bạn (`OPENAI_API_KEY`, `OPENAI_BASE_URL`, `JINA_API_KEY`).
+
+---
+
+## 📂 5. CẤU TRÚC THƯ MỤC DỰ ÁN (PROJECT DIRECTORY)
+
+```text
+Student_Second_Brain/
+├── data/
+│   └── raw/                    # Dữ liệu bài giảng gốc (DOC0001.txt -> DOC0008.md)
+├── logs/                       # Nhật ký các phiên chạy thực tế (.jsonl)
+├── src/
+│   ├── LLM/                    # Kết nối mô hình ngôn ngữ và bảng đếm token USAGE
+│   ├── agent/                  # Vòng lặp ReAct Loop, Bộ nhớ trượt Sliding Memory, Parser
+│   ├── mcp/                    # MCP Server (stdio), Tool Adapter khám phá tool động
+│   ├── multi_agent/            # Hệ đa tác tử (Coordinator, Researcher, Checker, Answer)
+│   ├── prompts/                # Toàn văn System Prompts tiếng Việt
+│   └── rag/                    # Hybrid RAG, Parent-Child Chunking, BM25 & VectorStore
+├── tests/
+│   ├── testset.jsonl           # Bộ 36 câu hỏi đánh giá (12 câu no_answer)
+│   └── run_tests.py            # Kịch bản chạy tự động đo đạc độ chính xác và token
+├── .env.example                # Bản mẫu cấu hình an toàn (không chứa key bí mật)
+├── .gitignore                  # Cấu hình bảo mật, chặn lộ key .env
+├── ai-usage.md                 # Bản khai báo sử dụng AI theo chuẩn liêm chính học thuật
+├── Makefile                    # Lệnh make setup, make demo, make eval
+├── run.bat                     # File kích hoạt chạy nhanh 1-click trên Windows
+├── main.py                     # Điểm khởi chạy chính thức của hệ thống
+└── README.md                   # Hướng dẫn chi tiết sử dụng và vận hành
+```
+
+---
+
+## 📋 6. BẢNG PHÂN CÔNG ĐÓNG GÓP & COMMIT HASH
+
+| Thành viên | Trách nhiệm chuyên môn chính | Tỷ lệ đóng góp | Commit Hash tiêu biểu |
+| :--- | :--- | :---: | :--- |
+| **Trần Lê Dũng**<br>(Role A) | Thiết kế pipeline Ingestion, Parent-Child Chunking, thuật toán Hybrid Search (Dense + BM25) kết hợp RRF ($k=60$), VectorStore cache. | **33.3%** | `401546a`, `2d5a78c`, `f4b5ee6` |
+| **Huỳnh Lê Anh Tuấn**<br>(Role B) | Vòng lặp tự chủ ReAct `Loop.py`, Bộ nhớ cửa sổ trượt `Memory.py`, bắt lỗi cú pháp `Parser.py`, bộ testset 36 câu và gateway `main.py`. | **33.4%** | `3e9e5bf`, `426157b`, `d4ce1de` |
+| **Lê Khánh Duy**<br>(Role C) | Xây dựng MCP Server chuẩn stdio, các tool `search`, `get`, `update`, cơ chế Atomic Rollback, hệ thống Đa tác tử `MultiAgentSystem`. | **33.3%** | `7ffd454`, `a6094ba`, `01ae85b` |
