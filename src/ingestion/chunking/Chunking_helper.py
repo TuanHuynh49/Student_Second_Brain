@@ -12,7 +12,6 @@ import os
 load_dotenv()
 
 
-# ===== LỖI 2: loaddoc =====
 def loaddoc(filename: str) -> Optional[Document]:
     base = os.getenv("DOC_PATH")
     if not base:
