@@ -1,26 +1,31 @@
 import logging
 import sys
+from pathlib import Path
 
 def setup_logger():
-    LOG_PATH = "logs/server.log"
-    _handlers: list[logging.Handler] = [logging.StreamHandler(sys.stderr)]
+    project_root = Path(__file__).resolve().parents[2]
+    log_path = project_root / "logs" / "server.log"
 
-    try:
-        _handlers.append(logging.FileHandler(LOG_PATH, encoding="utf-8"))
-    except OSError as error:
-        print(f"warning: cannot open {LOG_PATH}: {error}", file=sys.stderr)
+    log_path.parent.mkdir(parents=True, exist_ok=True)
 
     logger = logging.getLogger("student_second_brain")
     logger.setLevel(logging.INFO)
     logger.propagate = False
-    formatter = logging.Formatter(
-    "%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
-)
 
-    for handler in _handlers:
-        handler.setFormatter(formatter)
-        logger.addHandler(handler)
+    # Tránh tạo nhiều handler nếu setup_logger() được gọi lại.
+    if not logger.handlers:
+        file_handler = logging.FileHandler(
+            log_path,
+            encoding="utf-8",
+        )
+
+        formatter = logging.Formatter(
+            "%(asctime)s | %(levelname)-8s | "
+            "%(name)s | %(message)s",
+            datefmt="%Y-%m-%d %H:%M:%S",
+        )
+
+        file_handler.setFormatter(formatter)
+        logger.addHandler(file_handler)
 
     return logger
- 
