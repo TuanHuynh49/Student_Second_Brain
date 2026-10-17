@@ -9,33 +9,65 @@ sys.path.append(str(PROJECT_ROOT))
 from mcp import Client, StdioServerParameters
 
 from src.agent.Loop import run_agent
-from src.agent.Memory import SlidingWindowMemory
-from src.LLM.Client import USAGE, reset_usage
-from src.models.Schemas import Tool
+from src.LLM.Client import USAGE, reset_usage 
 
+from src.mcp.server import search, get, update
 
-def extract_tool_text(result) -> str:
-    """Lấy phần text từ kết quả MCP."""
-    parts = []
-
-    for block in result.content or []:
-        text = getattr(block, "text", None)
-        if text:
-            parts.append(text)
-
-    content = "\n\n".join(parts)
-
-    if getattr(result, "is_error", False):
-        return f"Error: {content or 'MCP tool thất bại.'}"
-
-    return content or "Tool không trả về nội dung."
-
-
-def build_tools(client, server_tools) -> list[Tool]:
-    """Chuyển schema MCP thành schema tool dùng bởi ReAct."""
-    tools = []
-
-    for server_tool in server_tools:
+TOOLS = [
+    Tool(
+        name="search",
+        description="Tìm kiếm tài liệu học tập, bài giảng trong kho tri thức theo nội dung ngữ nghĩa.",
+        parameters={
+            "type": "object",
+            "properties": {
+                "query": {
+                    "type": "string",
+                    "description": "Nội dung cần tìm kiếm"
+                },
+                "top_k": {
+                    "type": "integer",
+                    "description": "Số lượng đoạn văn cần lấy (mặc định 3)"
+                }
+            },
+            "required": ["query"]
+        },
+        fn=search
+    ),
+    Tool(
+        name="get",
+        description="Đọc toàn bộ nội dung chi tiết của một tài liệu dựa theo mã doc_id (ví dụ: DOC0001, test).",
+        parameters={
+            "type": "object",
+            "properties": {
+                "doc_id": {
+                    "type": "string",
+                    "description": "Mã định dah của tài liệu"
+                }
+            },
+            "required": ["doc_id"]
+        },
+        fn=get
+    ),
+    Tool(
+        name="update",
+        description="Cập nhật tiêu đề và nội dung mới cho tài liệu đã có, đồng thời tự động lập lại chỉ mục tìm kiếm.",
+        parameters={
+            "type": "object",
+            "properties": {
+                "doc_id": {
+                    "type": "string",
+                    "description": "Mã tài liệu cần sửa"
+                },
+                "content": {
+                    "type": "string",
+                    "description": "Nội dung mới của tài liệu"
+                }
+            },
+            "required": ["doc_id", "title", "content"]
+        },
+        fn=update
+    )
+]
 
         async def call_mcp_tool(
             _tool_name=server_tool.name,
