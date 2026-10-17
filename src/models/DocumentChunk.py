@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Optional
 @dataclass
 class ParentChunk:
-    content: str
+    content: str=None
     parent_id: str=None
     doc_id: str=None
     source: str = None
