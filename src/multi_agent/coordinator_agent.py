@@ -16,14 +16,15 @@ api_key = (
     os.getenv("OPENAI_API_KEY")
 )
 
-model = os.getenv("OPENAI_MODEL", "gpt-oss-120b-medium")
+base_url = os.getenv("OPENAI_BASE_URL")
+model = os.getenv("OPENAI_MODEL") or os.getenv("MODEL") or "gpt-6.1-sol"
 
 if not api_key:
     raise ValueError(
         "Không tìm thấy OPENAI_API_KEY hoặc OPEN_API_KEY trong file .env"
     )
 
-client = OpenAI(api_key=api_key)
+client = OpenAI(api_key=api_key, base_url=base_url)
 
 
 
