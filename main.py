@@ -1,3 +1,4 @@
+import asyncio
 import sys
 import os
 import warnings
@@ -103,10 +104,12 @@ def main():
                 break
 
             print ("\n🤖 Second Brain đang suy nghĩ...")
-            answer = run_agent(
-                user_task=user_input,
-                tools=TOOLS,
-                memory=session_memory,
+            answer = asyncio.run(
+                run_agent(
+                    user_task=user_input,
+                    tools=TOOLS,
+                    memory=session_memory,
+                )
             )
 
             print(f"\n🧠 Phản hồi:\n{answer}\n")
