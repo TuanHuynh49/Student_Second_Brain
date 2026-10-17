@@ -90,7 +90,7 @@ def build_vector_store() -> VectorStore:
 
     # Lưu VectorStore trước.
     with contextlib.redirect_stdout(sys.stderr):
-        store.save(str(STORE_PATH))
+        store.save()
 
     # Lưu thời gian sửa đổi của các file TXT vào cache.
     with open(STORE_PATH, "r", encoding="utf-8") as file:
@@ -137,7 +137,7 @@ def load_vector_store() -> VectorStore:
         logger.info("Đang tải VectorStore từ cache: %s", STORE_PATH)
 
         with contextlib.redirect_stdout(sys.stderr):
-            return VectorStore.load(str(STORE_PATH))
+            return VectorStore.load()
 
     except (OSError, json.JSONDecodeError, AttributeError, TypeError):
         logger.exception("Cache không hợp lệ. Đang tạo lại VectorStore.")
@@ -193,7 +193,7 @@ def search(query: str, top_k: int = 5) -> str:
                     f"[Kết quả {idx}] Score: {res_chunk.score:.4f}\n"
                     f"Doc ID: {res_chunk.parent.doc_id}\n"
                     f"Parent Section: {res_chunk.parent.section}\n"
-                    f"Parent Content: {res_chunk.parent.content[:150]}...\n"
+                    f"Parent Content: {res_chunk.parent.content}...\n"
                     f"Số lượng matched children: {len(res_chunk.matched_children)}"
                 )
 
@@ -234,6 +234,19 @@ def get(doc_id: str) -> str:
             )
 
         content = path.read_text(encoding="utf-8")
+        print(
+            f"[DEBUG get] path={path} "
+            f"length={len(content)} "
+            f"has_test_marker={'MCP_UPDATE_TEST_20261017' in content}",
+            file=sys.stderr,
+        )
+        logger.info(
+            "GET SUCCESS: doc_id=%s | path=%s | length=%d | has_test_marker=%s",
+            doc_id,
+            path.resolve(),
+            len(content),
+            "MCP_UPDATE_TEST_20261017245" in content,
+        )
 
         return (
             f"Document ID: {document.doc_id}\n"
@@ -251,26 +264,42 @@ def get(doc_id: str) -> str:
 # 6. TOOL: UPDATE
 # ============================================================
 
+
 @mcp.tool()
 def update(doc_id: str, content: str) -> str:
     """
     Cập nhật nội dung file TXT và đồng bộ lại VectorStore/cache.
     """
+    logger.info("UPDATE START: doc_id=%s", doc_id)
+
     if is_empty(doc_id):
+        logger.warning("UPDATE FAILED: doc_id is empty")
         return "Vui lòng cung cấp doc_id."
 
     if content is None or not content.strip():
+        logger.warning(
+            "UPDATE FAILED: empty content, doc_id=%s",
+            doc_id,
+        )
         return "Nội dung cập nhật không được để trống."
 
     document = vector_store.get_document(doc_id)
 
     if document is None:
+        logger.warning(
+            "UPDATE FAILED: document not found, doc_id=%s",
+            doc_id,
+        )
         return f"Không tìm thấy tài liệu có ID: {doc_id}"
 
     try:
         path = resolve_document_path(document.source)
 
         if not path.is_file():
+            logger.error(
+                "UPDATE FAILED: file not found, path=%s",
+                path,
+            )
             return f"File không tồn tại: {document.source}"
 
         old_content = path.read_text(encoding="utf-8")
@@ -287,24 +316,60 @@ def update(doc_id: str, content: str) -> str:
                     "Không tìm thấy tài liệu sau khi tạo lại VectorStore."
                 )
 
-            # Cập nhật store đang được các MCP tools sử dụng.
+            # Đồng bộ store đang được các MCP tools sử dụng.
             vector_store.documents = new_store.documents
             vector_store.parent_chunks = new_store.parent_chunks
             vector_store.child_chunks = new_store.child_chunks
             vector_store.parents_in_doc = new_store.parents_in_doc
             vector_store.children_in_parent = new_store.children_in_parent
 
-            return f"Đã cập nhật tài liệu {doc_id} và lưu lại VectorStore."
+            logger.info(
+                "UPDATE SUCCESS: doc_id=%s, path=%s, chars=%d",
+                doc_id,
+                path,
+                len(content),
+            )
+
+            return (
+                f"Đã cập nhật tài liệu {doc_id} "
+                "và đồng bộ lại VectorStore/cache."
+            )
 
         except Exception:
             # Nếu tái tạo index thất bại, khôi phục file nguồn cũ.
             path.write_text(old_content, encoding="utf-8")
-            logger.exception("Không thể đồng bộ VectorStore sau khi update")
-            return "Cập nhật thất bại khi đồng bộ VectorStore; đã khôi phục file nguồn."
 
-    except Exception as e:
-        logger.exception("Lỗi khi update document")
-        return f"Lỗi cập nhật tài liệu: {e}"
+            logger.exception(
+                "UPDATE FAILED: VectorStore sync, doc_id=%s",
+                doc_id,
+            )
+
+            # Cố gắng đồng bộ lại index với file đã khôi phục.
+            try:
+                restored_store = build_vector_store()
+                vector_store.documents = restored_store.documents
+                vector_store.parent_chunks = restored_store.parent_chunks
+                vector_store.child_chunks = restored_store.child_chunks
+                vector_store.parents_in_doc = restored_store.parents_in_doc
+                vector_store.children_in_parent = (
+                    restored_store.children_in_parent
+                )
+            except Exception:
+                logger.exception(
+                    "ROLLBACK WARNING: could not rebuild VectorStore"
+                )
+
+            return (
+                "Cập nhật thất bại khi đồng bộ VectorStore; "
+                "đã khôi phục nội dung file nguồn."
+            )
+
+    except Exception:
+        logger.exception(
+            "UPDATE FAILED: document operation, doc_id=%s",
+            doc_id,
+        )
+        return "Lỗi cập nhật tài liệu. Hãy kiểm tra server.log."
 
 
 # ============================================================
