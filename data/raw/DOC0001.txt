@@ -68,6 +68,13 @@ MCP là giao thức chuẩn hóa kết nối giữa LLM Agent với nguồn dữ
 
 MCP tách Agent khỏi chi tiết triển khai của từng nguồn dữ liệu hoặc công cụ, nhờ đó tăng tính tương thích, tái sử dụng và khả năng mở rộng. Các thao tác có tác dụng phụ cần được kiểm soát quyền truy cập, kiểm tra tham số và kiểm chứng kết quả sau khi thực hiện.
 
+### Cập nhật ghi nhớ nhanh về MCP
+
+- **Host điều phối**, **Client kết nối** và **Server cung cấp** dữ liệu hoặc công cụ.
+- **Resources** dùng để đọc dữ liệu; **Tools** dùng để thực hiện thao tác; **Prompts** dùng để chuẩn hóa hướng dẫn.
+- Quy trình cốt lõi: **kết nối/khám phá → chọn capability → gọi theo schema → Server thực thi → Agent xử lý kết quả**.
+- Khi Tool có tác dụng phụ, cần giới hạn quyền, xác thực tham số và đọc lại kết quả để kiểm chứng việc thực thi.
+
 ## 5. Cơ chế kiểm chứng sau thao tác
 
 Các thao tác có tác dụng phụ như cập nhật hoặc lưu tài liệu phải được kiểm chứng. Sau khi gọi lệnh update, Agent cần gọi get để đọc lại tài liệu và xác nhận dữ liệu đã được lưu đúng.
