@@ -1,5 +1,15 @@
 import sys
+import os
+import warnings
+import logging
 from pathlib import Path
+
+# 🔕 Tắt các log rác từ thư viện bên ngoài (httpx, sentence_transformers, huggingface)
+warnings.filterwarnings("ignore")
+os.environ["HF_HUB_DISABLE_SYMLINKS_WARNING"] = "1"
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
+os.environ["TQDM_DISABLE"] = "1"  # <-- Tắt thanh Loading weights 100%
+logging.disable(logging.WARNING)  # 🚫 CÔNG TẮC TỔNG: Chặn sạch mọi log INFO của toàn bộ thư viện
 
 PROJECT_ROOT = Path(__file__).resolve().parent
 sys.path.append(str(PROJECT_ROOT))
@@ -61,7 +71,7 @@ TOOLS = [
                     "description": "Nội dung mới của tài liệu"
                 }
             },
-            "required": ["doc_id", "title", "content"]
+            "required": ["doc_id", "content"]
         },
         fn=update
     )
