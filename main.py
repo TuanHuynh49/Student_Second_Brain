@@ -1,4 +1,6 @@
 import asyncio
+import shutil
+import sys
 
 from mcp import Client, StdioServerParameters
 
@@ -33,11 +35,17 @@ async def main():
         # Bộ nhớ dành cho ReAct.
         memory = SlidingWindowMemory(max_messages=6)
 
-        # Cấu hình kết nối MCP.
-        server = StdioServerParameters(
-            command="uv",
-            args=["run", "python", "-m", "src.mcp.server"],
-        )
+        # Cấu hình kết nối MCP tự động nhận diện uv hoặc python hiện tại.
+        if shutil.which("uv"):
+            server = StdioServerParameters(
+                command="uv",
+                args=["run", "python", "-m", "src.mcp.server"],
+            )
+        else:
+            server = StdioServerParameters(
+                command=sys.executable,
+                args=["-m", "src.mcp.server"],
+            )
 
         async with Client(server) as client:
             # Khám phá tools một lần khi khởi động.

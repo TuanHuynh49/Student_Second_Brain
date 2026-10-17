@@ -1,4 +1,6 @@
 
+import shutil
+import sys
 from mcp import Client, StdioServerParameters
 
 
@@ -7,9 +9,14 @@ class ResearchAgent:
         self.name = "Research Agent"
 
     def _get_server(self):
+        if shutil.which("uv"):
+            return StdioServerParameters(
+                command="uv",
+                args=["run", "python", "-m", "src.mcp.server"]
+            )
         return StdioServerParameters(
-            command="uv",
-            args=["run", "python", "-m", "src.mcp.server"]
+            command=sys.executable,
+            args=["-m", "src.mcp.server"]
         )
 
     async def _get_tool_names(self, client) -> set[str]:
