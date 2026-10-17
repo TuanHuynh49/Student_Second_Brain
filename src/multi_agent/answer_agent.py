@@ -4,6 +4,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 from openai import OpenAI
+from src.LLM.Client import call_llm
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -51,9 +52,28 @@ class AnswerAgent:
         if research_result.get("status") == "not_found" or not evidence:
             return "Tôi không biết câu trả lời vì không tìm thấy thông tin phù hợp trong tài liệu."
 
-        evidence_text = "\n\n".join(
-            str(item) for item in evidence
-        )
+        
+        evidence_parts = []
+        
+        for index, item in enumerate(evidence, start=1):
+            if isinstance(item, dict):
+                
+                evidence_parts.append(
+                    f"Evidence {index}\n"
+                    f"Score: {item.get('score', 'N/A')}\n"
+                    f"Document ID: {item.get('doc_id', 'N/A')}\n"
+                    f"Source: {item.get('source', 'N/A')}\n"
+                    f"Section: {item.get('section', 'N/A')}\n"
+                    f"Content:\n{item.get('content', '')}"
+                )
+            else:
+                # Tương thích với evidence dạng chuỗi cũ.
+                evidence_parts.append(
+                    f"Evidence {index}\n{item}"
+                )
+
+        evidence_text = "\n\n---\n\n".join(evidence_parts)
+
 
         system_prompt = """
     Bạn là Answer Agent của hệ thống Student Second Brain.
@@ -79,16 +99,12 @@ class AnswerAgent:
             f"Bằng chứng từ tài liệu:\n{evidence_text}"
         )
 
-        response = client.chat.completions.create(
-            model=model,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_content}
-            ],
-            temperature=0
-        )
+        message = call_llm([
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_content}
+        ])
 
-        answer_text = response.choices[0].message.content
+        answer_text = message.content
 
         if not answer_text:
             return "Tôi không thể tạo câu trả lời từ tài liệu hiện có."

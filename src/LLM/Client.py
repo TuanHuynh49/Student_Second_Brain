@@ -25,6 +25,56 @@ USAGE = {
     "max_prompt": 0
 }
 
+
+# Giá tính theo USD / 1 triệu tokens.
+# Điền đúng giá của nhà cung cấp và model bạn đang sử dụng.
+INPUT_PRICE_PER_MILLION = float(
+    os.getenv("INPUT_PRICE_PER_MILLION", "0")
+)
+OUTPUT_PRICE_PER_MILLION = float(
+    os.getenv("OUTPUT_PRICE_PER_MILLION", "0")
+)
+
+USAGE["cost_usd"] = 0.0
+
+
+def get_usage() -> dict:
+    """Trả về bản sao thống kê token hiện tại."""
+    return USAGE.copy()
+
+
+def get_cost_usd() -> float:
+    """Ước tính chi phí dựa trên token input/output."""
+    input_cost = (
+        USAGE["prompt_tokens"]
+        * INPUT_PRICE_PER_MILLION
+        / 1_000_000
+    )
+    output_cost = (
+        USAGE["completion_tokens"]
+        * OUTPUT_PRICE_PER_MILLION
+        / 1_000_000
+    )
+    return input_cost + output_cost
+
+
+def print_usage() -> None:
+    """In thống kê token và chi phí."""
+    cost = get_cost_usd()
+
+    print("\n========== TOKEN USAGE & COST ==========")
+    print(f"LLM calls:        {USAGE['calls']}")
+    print(f"Input tokens:     {USAGE['prompt_tokens']:,}")
+    print(f"Output tokens:    {USAGE['completion_tokens']:,}")
+    print(
+        "Total tokens:     "
+        f"{USAGE['prompt_tokens'] + USAGE['completion_tokens']:,}"
+    )
+    print(f"Max prompt:       {USAGE['max_prompt']:,}")
+    print(f"Estimated cost:   ${cost:.8f} USD")
+    print("========================================")
+
+
 def reset_usage():
     for k in USAGE:
         USAGE[k] = 0
@@ -61,7 +111,10 @@ def call_llm(messages, tools=None):
     USAGE["calls"] += 1
     USAGE["prompt_tokens"] += prompt_tokens
     USAGE["completion_tokens"] += completion_tokens
-    USAGE["max_prompt"] = max(USAGE["max_prompt"], prompt_tokens)
+    USAGE["max_prompt"] = max(
+        USAGE["max_prompt"], prompt_tokens
+    )
+    USAGE["cost_usd"] = get_cost_usd()
 
     return response.choices[0].message
 
