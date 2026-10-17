@@ -94,6 +94,7 @@ cython_debug/
 # ==========================================
 data/
 !data/.gitkeep  # (Tùy chọn) Giữ lại thư mục data trống nếu cần thiết trên git
+document_store_cache.json
 
 # Visual Studio Code & IDEs
 .vscode/
