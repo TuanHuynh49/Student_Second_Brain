@@ -17,7 +17,16 @@ class EvidenceCheckerAgent:
                 "reason": "Không có bằng chứng từ tài liệu."
             }
 
-        evidence_text = "\n\n".join(evidence)
+        evidence_text = "\n\n".join(
+            item if isinstance(item, str)
+            else (
+                f"Score: {item.get('score', 'N/A')}\n"
+                f"Source: {item.get('source', 'N/A')}\n"
+                f"Section: {item.get('section', 'N/A')}\n"
+                f"Content: {item.get('content', '')}"
+            )
+            for item in evidence
+        )
 
         response = self.client.chat.completions.create(
             model=self.model,
