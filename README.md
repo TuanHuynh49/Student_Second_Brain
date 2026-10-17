@@ -10,9 +10,48 @@
 
 ---
 
-## ⚡ 1. QUICK START — CHẠY DEMO TRONG 1 BƯỚC DUY NHẤT
+## 🛠️ 1. CÀI ĐẶT & THIẾT LẬP MÔI TRƯỜNG (COLD-START SETUP)
 
-Giảng viên và người chấm có thể khởi động hệ thống ngay lập tức bằng **1 trong các cách sau**:
+Khi tải hoặc clone repository về máy tính mới, thực hiện 2 bước thiết lập sau:
+
+### Bước 1: Khởi tạo môi trường ảo và cài đặt thư viện
+
+```bash
+# 1. Tạo môi trường ảo Python 3.11+
+python -m venv .venv
+
+# 2. Kích hoạt môi trường ảo:
+# Trên Windows (PowerShell):
+.\.venv\Scripts\Activate.ps1
+# Trên Windows (Command Prompt - CMD):
+.venv\Scripts\activate.bat
+# Trên Linux / macOS:
+source .venv/bin/activate
+
+# 3. Cài đặt các thư viện cần thiết:
+pip install -r requirements.txt
+```
+
+*(Hoặc dùng lệnh Makefile ngắn gọn)*:
+```bash
+make setup
+```
+
+### Bước 2: Khởi tạo file cấu hình môi trường (.env)
+
+```bash
+# Copy file template mẫu sang .env
+copy .env.example .env    # Trên Windows
+cp .env.example .env      # Trên Linux/macOS
+```
+
+> **Lưu ý**: Mở file `.env` vừa tạo và điền các API key của bạn (`OPENAI_API_KEY`, `OPENAI_BASE_URL`, `JINA_API_KEY`, `GROQ_API_KEY`).
+
+---
+
+## ⚡ 2. KHỞI ĐỘNG HỆ THỐNG (QUICK START DEMO)
+
+Sau khi cài đặt xong, có thể khởi động hệ thống ngay lập tức bằng **1 trong các cách sau**:
 
 ### Cách 1: Chạy lệnh trực tiếp qua Terminal (Khuyến nghị)
 
@@ -26,15 +65,19 @@ python main.py
 ```bash
 make demo
 ```
+> Hoặc chạy trọn gói cả cài đặt và demo trong 1 dòng lệnh duy nhất:
+> ```bash
+> make setup && make demo
+> ```
 
 ### Cách 3: Nhấp đúp chuột trên Windows
 Nhấp đúp chuột vào tệp **`run.bat`** ở thư mục gốc của dự án để khởi động ngay.
 
 ---
 
-## 🎯 2. KỊCH BẢN CÂU HỎI THỬ NGHIỆM TẠI CHỖ (TEST PROMPTS)
+## 🎯 3. KỊCH BẢN CÂU HỎI THỬ NGHIỆM TẠI CHỖ (TEST PROMPTS)
 
-Khi giao diện chat `Student Second Brain >` xuất hiện, copy các câu mẫu sau để kiểm tra toàn bộ 3 trụ cột của hệ thống:
+Khi giao diện chat `❓ Nhập câu hỏi (gõ 'exit' để thoát):` xuất hiện, copy các câu mẫu sau để kiểm tra toàn bộ 3 trụ cột của hệ thống:
 
 ### Kịch bản 1: Hỏi đáp tài liệu có bằng chứng (Multi-Agent RAG)
 Hệ thống kích hoạt Coordinator $\rightarrow$ Researcher $\rightarrow$ EvidenceChecker $\rightarrow$ AnswerAgent để trích xuất và hiển thị nguồn minh chứng:
@@ -61,51 +104,17 @@ Chính sách hoàn tiền học phí khi bảo lưu kết quả học tập tạ
 
 ---
 
-## 📊 3. LỆNH CHẠY ĐÁNH GIÁ TỰ ĐỘNG (EVAL BENCHMARK)
+## 📊 4. LỆNH CHẠY ĐÁNH GIÁ TỰ ĐỘNG (EVAL BENCHMARK)
 
 Để chạy tự động toàn bộ bộ kiểm thử 36 câu hỏi (`tests/testset.jsonl`), đo lường độ chính xác và xuất nhật ký chạy vào thư mục `logs/`:
 
 ```bash
-python -m tests.run_tests
+python -m tests.run_tests (hoặc uv run -m tests.run_tests)
 ```
 *(Hoặc dùng lệnh make)*:
 ```bash
 make eval
 ```
-
----
-
-## 🛠️ 4. HƯỚNG DẪN TÁI LẬP MÔI TRƯỜNG TỪ ĐẦU (COLD-START SETUP)
-
-Nếu chuyển mã nguồn sang một máy tính mới hoàn toàn, thực hiện 2 bước thiết lập sau:
-
-### Bước 1: Khởi tạo môi trường ảo và cài đặt thư viện
-```bash
-# 1. Tạo và kích hoạt môi trường ảo
-python -m venv .venv
-
-# Trên Windows (PowerShell):
-.\.venv\Scripts\Activate.ps1
-# Trên Windows (Command Prompt - CMD):
-.venv\Scripts\activate.bat
-# Trên Linux / macOS:
-source .venv/bin/activate
-
-# 2. Cài đặt các thư viện cần thiết
-pip install -r requirements.txt
-```
-*(Hoặc dùng Makefile)*:
-```bash
-make setup
-```
-
-### Bước 2: Khởi tạo file cấu hình môi trường (.env)
-```bash
-# Copy file template mẫu sang .env
-copy .env.example .env    # Trên Windows
-cp .env.example .env      # Trên Linux/macOS
-```
-Mở file `.env` vừa tạo và điền các khóa API của bạn (`OPENAI_API_KEY`, `OPENAI_BASE_URL`, `JINA_API_KEY`).
 
 ---
 

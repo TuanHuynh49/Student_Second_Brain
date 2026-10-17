@@ -11,6 +11,20 @@ from src.mcp.logger import setup_logger
 from src.multi_agent.coordinator_agent import CoordinatorAgent
 from src.multi_agent.multi_agent import MultiAgentSystem
 
+# ──────────────────────────────────────────────
+BANNER = """
+╔══════════════════════════════════════════════╗
+║   🧠  S T U D E N T  S E C O N D  B R A I N  ║
+║        AI-Powered Study Assistant v1.0       ║
+╚══════════════════════════════════════════════╝
+"""
+DIVIDER  = "─" * 50
+DIVIDER2 = "═" * 50
+
+
+def _sep(char: str = "─", n: int = 50) -> str:
+    return char * n
+
 
 async def main():
     # Khởi tạo logger ghi log thông thường.
@@ -26,6 +40,9 @@ async def main():
         app_logger.info("Student Second Brain đang khởi động...")
         log_event("application_started")
 
+        print(BANNER)
+        print("⚙️  Đang khởi tạo hệ thống...")
+
         # Khởi tạo Coordinator và Multi-Agent một lần.
         coordinator = CoordinatorAgent()
         multi_agent = MultiAgentSystem(max_attempts=3)
@@ -33,11 +50,15 @@ async def main():
         # Bộ nhớ dành cho ReAct.
         memory = SlidingWindowMemory(max_messages=6)
 
+        print("✅  Coordinator & Multi-Agent sẵn sàng.")
+
         # Cấu hình kết nối MCP.
         server = StdioServerParameters(
             command="uv",
             args=["run", "python", "-m", "src.mcp.server"],
         )
+
+        print("🔌  Đang kết nối MCP Server...")
 
         async with Client(server) as client:
             # Khám phá tools một lần khi khởi động.
@@ -55,27 +76,32 @@ async def main():
                 tool_count=len(tools),
             )
 
-            print("Các MCP tools đã khám phá:")
+            print(f"🛠️  Đã khám phá {len(tools)} MCP tool(s):")
             for tool in tools:
-                print(f"- {tool.name}: {tool.description}")
+                print(f"   ├─ 🔧 {tool.name}: {tool.description}")
+
+            print()
+            print(_sep("═"))
+            print("💬  Hệ thống đã sẵn sàng! Bắt đầu hỏi đáp.")
+            print(_sep("═"))
 
             while True:
                 try:
                     query = input(
-                        "\nNhập câu hỏi (gõ exit để thoát): "
+                        "\n❓ Nhập câu hỏi (gõ 'exit' để thoát): "
                     ).strip()
                 except (EOFError, KeyboardInterrupt):
-                    print("\nĐang thoát Student Second Brain.")
+                    print("\n👋  Đang thoát Student Second Brain...")
                     log_event("application_exit_requested")
                     break
 
                 if query.casefold() == "exit":
-                    print("Đã thoát Student Second Brain.")
+                    print("👋  Đã thoát Student Second Brain. Tạm biệt!")
                     log_event("application_exit_requested")
                     break
 
                 if not query:
-                    print("Vui lòng nhập câu hỏi.")
+                    print("⚠️  Vui lòng nhập câu hỏi.")
                     continue
 
                 # Reset thống kê cho câu hỏi hiện tại.
@@ -86,8 +112,12 @@ async def main():
                     query=query,
                 )
 
+                print()
+                print(_sep())
+
                 try:
-                    # Bước 1: Coordinator phân loại câu hỏi.
+                    # ── Bước 1: Coordinator phân loại câu hỏi ──
+                    print("🎯  [Bước 1/3] Coordinator đang phân loại câu hỏi...")
                     decision = coordinator.decide(query)
 
                     log_event(
@@ -100,17 +130,24 @@ async def main():
                     intent = decision.get("intent")
                     reason = decision.get("reason")
 
-                    print(
-                        "[DEBUG main] Đã phân loại, "
-                        "chuẩn bị định tuyến."
-                    )
-                    print("\n[Coordinator] Intent:", intent)
-                    print("[Coordinator] Reason:", reason)
+                    intent_icons = {
+                        "search_documents": "📚",
+                        "react_tools":      "🔧",
+                        "general_question": "💬",
+                    }
+                    icon = intent_icons.get(intent, "❓")
+
+                    print(f"   ├─ {icon} Intent : {intent}")
+                    print(f"   └─ 💡 Reason : {reason}")
 
                     evidence_list = []
 
-                    # Bước 2: Định tuyến theo intent.
+                    # ── Bước 2: Định tuyến theo intent ──
                     if intent == "search_documents":
+                        print(
+                            "\n📖  [Bước 2/3] 🧠 StudentSecondBrain đang trả lời:"
+                            " đang tìm kiếm tài liệu & tổng hợp câu trả lời..."
+                        )
                         result = await multi_agent.run(
                             user_query=query,
                             decision=decision,
@@ -137,6 +174,10 @@ async def main():
                         )
 
                     elif intent == "react_tools":
+                        print(
+                            "\n⚙️  [Bước 2/3] 🧠 StudentSecondBrain đang trả lời:"
+                            " đang thực thi công cụ (ReAct Agent)..."
+                        )
                         answer = await run_agent(
                             user_task=query,
                             tools=tools,
@@ -149,6 +190,9 @@ async def main():
                         )
 
                     elif intent == "general_question":
+                        print(
+                            "\n💬  [Bước 2/3] 🧠 StudentSecondBrain đang trả lời..."
+                        )
                         answer = (
                             "Tôi là Student Second Brain. "
                             "Bạn có thể hỏi về tài liệu đã nạp "
@@ -162,8 +206,11 @@ async def main():
                             f"không hợp lệ: {intent}"
                         )
 
-                    # Bước 3: Trả lời người dùng.
-                    print("\nStudent Second Brain:", answer)
+                    # ── Bước 3: Trả lời người dùng ──
+                    print(f"\n✅  [Bước 3/3] Câu trả lời:")
+                    print(_sep())
+                    print(f"🧠 StudentSecondBrain:\n{answer}")
+                    print(_sep())
 
                     log_event(
                         "answer_completed",
@@ -174,39 +221,25 @@ async def main():
                     # Hiển thị evidence khi tìm kiếm tài liệu.
                     if intent == "search_documents":
                         print(
-                            "\n========== SOURCES & EVIDENCE =========="
+                            f"\n📎  SOURCES & EVIDENCE  ({len(evidence_list)} nguồn)"
                         )
+                        print(_sep("═"))
 
                         if not evidence_list:
-                            print("Không có evidence để hiển thị.")
+                            print("   ⚠️  Không có evidence để hiển thị.")
                         else:
                             for index, item in enumerate(
                                 evidence_list,
                                 start=1,
                             ):
-                                print(f"\n--- Evidence {index} ---")
-                                print(
-                                    f"Score: "
-                                    f"{item.get('score', 'N/A')}"
-                                )
-                                print(
-                                    f"Document ID: "
-                                    f"{item.get('doc_id', 'N/A')}"
-                                )
-                                print(
-                                    f"Source: "
-                                    f"{item.get('source', 'N/A')}"
-                                )
-                                print(
-                                    f"Section: "
-                                    f"{item.get('section', 'N/A')}"
-                                )
-                                print(
-                                    f"Content:\n"
-                                    f"{item.get('content', 'N/A')}"
-                                )
+                                print(f"\n  📄 Evidence #{index}")
+                                print(f"  ├─ ⭐ Score     : {item.get('score', 'N/A')}")
+                                print(f"  ├─ 🆔 Doc ID    : {item.get('doc_id', 'N/A')}")
+                                print(f"  ├─ 📁 Source    : {item.get('source', 'N/A')}")
+                                print(f"  ├─ 📑 Section   : {item.get('section', 'N/A')}")
+                                print(f"  └─ 📝 Content   :\n     {item.get('content', 'N/A')}")
 
-                        print("========================================")
+                        print(_sep("═"))
 
                 except Exception as exc:
                     log_event(
@@ -220,8 +253,8 @@ async def main():
                     )
 
                     print(
-                        "\n[ERROR] Không thể xử lý câu hỏi: "
-                        f"{type(exc).__name__}: {exc}"
+                        f"\n❌  [LỖI] Không thể xử lý câu hỏi:\n"
+                        f"   {type(exc).__name__}: {exc}"
                     )
 
                 finally:
@@ -277,9 +310,9 @@ if __name__ == "__main__":
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
-        print("\nStudent Second Brain đã dừng.")
+        print("\n👋  Student Second Brain đã dừng. Tạm biệt!")
     except Exception as exc:
         print(
-            "\nỨng dụng kết thúc do lỗi: "
-            f"{type(exc).__name__}: {exc}"
+            "\n💥  Ứng dụng kết thúc do lỗi:\n"
+            f"   {type(exc).__name__}: {exc}"
         )
