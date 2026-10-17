@@ -1,0 +1,13 @@
+# Kiến trúc ReAct Agent và Giao thức MCP trong AI
+
+## 1. Mô hình ReAct (Reasoning + Acting)
+Mô hình ReAct kết hợp khả năng suy luận (Thought) và hành động (Action) của mô hình ngôn ngữ lớn (LLM). Thay vì sinh câu trả lời ngay lập tức, Agent sẽ:
+1. Suy nghĩ (Thought): Phân tích xem người dùng cần gì và cần dùng công cụ nào.
+2. Hành động (Action): Gọi công cụ thích hợp (ví dụ: search, get, update).
+3. Quan sát (Observation): Đọc kết quả từ công cụ và tiếp tục suy luận cho đến khi hoàn thành nhiệm vụ.
+
+## 2. Giao thức MCP (Model Context Protocol)
+MCP là giao thức chuẩn hóa việc kết nối giữa LLM Agent và các nguồn dữ liệu ngoài hoặc công cụ cục bộ. MCP Server đóng vai trò cung cấp tài nguyên (Resources) và công cụ (Tools) với schema chuẩn JSON để Agent có thể gọi an toàn.
+
+## 3. Cơ chế Kiểm chứng Sau Thao tác (Side-effect Verification)
+Trong hệ thống Second Brain, các thao tác có tác dụng phụ như sửa đổi (update) hay lưu (save) tài liệu bắt buộc phải đi kèm bước xác minh (verify). Agent sau khi gọi lệnh update phải gọi lệnh get để đọc lại tài liệu, kiểm chứng rằng dữ liệu đã thực sự được lưu đúng vào ổ cứng.
