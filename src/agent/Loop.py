@@ -1,6 +1,7 @@
 import json
 import sys
 from pathlib import Path
+import inspect
 
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 
@@ -12,60 +13,106 @@ def load_prompt(filename: str = "agent_react.txt") -> str:
     prompt_path = Path(__file__).resolve().parent.parent / "prompts" /filename
     return prompt_path.read_text(encoding="utf-8").strip()
 
-def run_agent(user_task: str, system_prompt: str = None, memory: SlidingWindowMemory = None, tools=(), max_step: int = 5, name: str = "StudentSecondBrain"):
+async def run_agent(
+    user_task: str,
+    system_prompt: str | None = None,
+    memory: SlidingWindowMemory | None = None,
+    tools=(),
+    max_step: int = 5,
+    name: str = "Student Second Brain",
+) -> str:
+    """Chạy ReAct loop, hỗ trợ cả tool đồng bộ và bất đồng bộ."""
+
+    user_task = user_task.strip()
+    if not user_task:
+        return "Vui lòng nhập câu hỏi."
+
+    if max_step < 1:
+        raise ValueError("max_step phải lớn hơn hoặc bằng 1.")
+
     if system_prompt is None:
         system_prompt = load_prompt("agent_react.txt")
 
     if memory is None:
-        memory = SlidingWindowMemory(max_messages=6)
+        memory = SlidingWindowMemory(max_messages=10)
 
     if not memory.system_message:
         memory.set_system_prompt(system_prompt)
 
-    memory.add_message("user", user_task)        
+    memory.add_message("user", user_task)
 
-    registry = {t.name: t for t in tools}
-
-    schemas = [t.schema() for t in tools] if tools else None
-
+    registry = {tool.name: tool for tool in tools}
+    schemas = [tool.schema() for tool in tools] if tools else None
     messages = memory.get_messages()
 
-    has_written = False
-    has_verified = False
-
     for step in range(max_step):
+        # call_llm hiện tại là hàm đồng bộ.
         msg = call_llm(messages, tools=schemas)
         messages.append(msg)
 
+        tool_calls = getattr(msg, "tool_calls", None)
 
-        if not getattr(msg, "tool_calls", None):
-            final_content = msg.content or "Nhiệm vụ đã hoàn thành."
+        if not tool_calls:
+            final_content = (
+                getattr(msg, "content", None)
+                or "Tôi chưa tạo được câu trả lời."
+            )
             memory.add_message("assistant", final_content)
             return final_content
 
-        for tc in msg.tool_calls:
-            fn_name = tc.function.name
-            args = json.loads(tc.function.arguments)
-            print(f"[{name}] Bước {step + 1}: Gọi {fn_name} ({args})")
+        for tool_call in tool_calls:
+            function_name = tool_call.function.name
+            raw_arguments = tool_call.function.arguments or "{}"
+
             try:
-                if fn_name not in registry:
-                    result = f"Error: Tool '{fn_name}' không tồn tại"
+                arguments = json.loads(raw_arguments)
+
+                if not isinstance(arguments, dict):
+                    raise ValueError("Tool arguments phải là JSON object.")
+
+                tool = registry.get(function_name)
+
+                if tool is None:
+                    result = f"Error: Không tìm thấy tool '{function_name}'."
                 else:
-                    result = registry[fn_name].fn(**args)
-                    if "save" in fn_name or "write" in fn_name:
-                        has_written = True
-                    if has_written and ("get" in fn_name or "read" in fn_name or "verify" in fn_name):
-                        has_verified = True
-            except Exception as e:
-                result = f"Error: {e}"
+                    result = tool.fn(**arguments)
 
-            messages.append({
-                "role": "tool",
-                "tool_call_id": tc.id,
-                "content": str(result)
-            })
+                    if inspect.isawaitable(result):
+                        result = await result
 
-    return "[Đã đạt giới hạn max_steps mà chưa hoàn thành nhiệm vụ]"
+                    if result is None:
+                        result = "Error: Tool không trả về kết quả."
+
+                    result = str(result)
+
+            except json.JSONDecodeError:
+                result = "Error: LLM trả về tool arguments không phải JSON hợp lệ."
+            except TypeError as exc:
+                result = f"Error: Tham số tool không hợp lệ: {exc}"
+            except Exception:
+                result = "Error: Tool thực thi thất bại. Hãy kiểm tra log server."
+
+            print(
+                f"[{name}] Bước {step + 1}: "
+                f"{function_name}({raw_arguments})"
+            )
+            print(f"[{name}] Kết quả: {result}")
+
+            messages.append(
+                {
+                    "role": "tool",
+                    "tool_call_id": tool_call.id,
+                    "content": result,
+                }
+            )
+
+    message = (
+        "Đã đạt giới hạn số bước. "
+        "Tác vụ chưa được xác nhận hoàn thành."
+    )
+    memory.add_message("assistant", message)
+    return message
+
 
 if __name__ == "__main__":
     # 1. Giả lập 2 công cụ (1 tool ghi + 1 tool đọc verify)
