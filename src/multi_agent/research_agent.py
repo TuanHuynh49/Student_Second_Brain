@@ -75,7 +75,7 @@ class ResearchAgent:
             evidence_list.append({
                 "score": score,
                 "doc_id": doc_id,
-                "source": None,
+                "source": extract(r"Source:\s*([^\n]+)"),
                 "section": section,
                 "content": parent_content,
                 "raw": block
