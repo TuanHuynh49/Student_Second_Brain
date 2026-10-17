@@ -86,6 +86,8 @@ python -m venv .venv
 
 # Trên Windows (PowerShell):
 .\.venv\Scripts\Activate.ps1
+# Trên Windows (Command Prompt - CMD):
+.venv\Scripts\activate.bat
 # Trên Linux / macOS:
 source .venv/bin/activate
 
