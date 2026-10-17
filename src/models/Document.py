@@ -4,8 +4,8 @@ from typing import Optional
 
 @dataclass
 class Document:
-    content:str=None
-    doc_id: str=None
+    content:str=""
+    doc_id: str=""
     title:str=None
     source:str=None
     metadata:dict=field(default_factory=dict)

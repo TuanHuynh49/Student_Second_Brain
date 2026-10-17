@@ -101,7 +101,7 @@ def build_vector_store() -> VectorStore:
 
     # Lưu VectorStore trước.
     with contextlib.redirect_stdout(sys.stderr):
-        store.save()
+        store.save(STORE_PATH)
 
     # Lưu thời gian sửa đổi của các file TXT vào cache.
     with open(STORE_PATH, "r", encoding="utf-8") as file:
@@ -147,7 +147,7 @@ def load_vector_store() -> VectorStore:
         logger.info("Đang tải VectorStore từ cache: %s", STORE_PATH)
 
         with contextlib.redirect_stdout(sys.stderr):
-            return VectorStore.load()
+            return VectorStore.load(STORE_PATH)
 
     except (OSError, json.JSONDecodeError, AttributeError, TypeError):
         logger.exception(
@@ -233,7 +233,7 @@ def get(doc_id: str) -> str:
     if is_empty(doc_id):
         return "Vui lòng cung cấp doc_id."
 
-    document = vector_store.get_document(doc_id)
+    document = vector_store.get_document(doc_id) or vector_store.get_document(f"doc_{doc_id}")
 
     if document is None:
         return f"Không tìm thấy tài liệu có ID: {doc_id}"
@@ -297,7 +297,7 @@ def update(doc_id: str, content: str) -> str:
         )
         return "Nội dung cập nhật không được để trống."
 
-    document = vector_store.get_document(doc_id)
+    document = vector_store.get_document(doc_id) or vector_store.get_document(f"doc_{doc_id}")
 
     if document is None:
         logger.warning(
