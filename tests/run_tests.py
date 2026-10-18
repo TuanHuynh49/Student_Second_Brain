@@ -21,7 +21,7 @@ from src.multi_agent.multi_agent import MultiAgentSystem
 # ============================================================
 
 BASE_DIR = Path(__file__).resolve().parent
-TEST_FILE = BASE_DIR / "test.jsonl"
+TEST_FILE = BASE_DIR / "testset.jsonl"
 
 BATCH_SIZE = 12
 TOTAL_RUNS = 3
@@ -66,7 +66,7 @@ def load_testset():
     if len(questions) != expected:
         raise ValueError(
             f"Cần {expected} câu hỏi, "
-            f"nhưng test.jsonl hiện có {len(questions)} câu."
+            f"nhưng testset.jsonl hiện có {len(questions)} câu."
         )
 
     return questions
