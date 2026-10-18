@@ -1,0 +1,111 @@
+{
+  "total_questions": 13,
+  "search_mode": "hybrid",
+  "total_tokens": 23332,
+  "results": [
+    {
+      "question": "Python Data Structures nào phù hợp nhất để lưu trữ một embedding vector cố định không thay đổi?",
+      "answer": "Dữ liệu **embedding vector** trong ví dụ là một dãy số có độ dài cố định và không bao giờ thay đổi sau khi được tạo.  \nTrong tài liệu **Knowledge Check 1** (phần 5, tuần 1) đã chỉ ra rằng:\n\n* **tuple** là kiểu dữ liệu phù hợp nhất vì:\n  * Nó có độ dài cố định.\n  * Nó **immutable** (không thể thay đổi), nên ngăn ngừa việc vô tình sửa đổi giá trị.\n  * Nhờ tính bất biến, một tuple còn có thể được dùng làm khóa của dict hoặc được lưu trong một `set`.\n\nDo đó, **tuple** là lựa chọn thích hợp để lưu trữ một embedding vector cố định không thay đổi.",
+      "tokens": 1434,
+      "faithfulness": 0.82,
+      "relevance": 1.0,
+      "context_precision": 0.33
+    },
+    {
+      "question": "Cấu trúc của một response object trong OpenAI Chat Completions API gồm những thành phần chính nào?",
+      "answer": "Cấu trúc của một **response object** trả về từ OpenAI Chat Completions API (theo ví dụ thực tế trong tài liệu) bao gồm các thành phần chính sau:\n\n| Thành phần | Mô tả |\n|------------|------|\n| **`id`** | Mã định danh duy nhất của yêu cầu (ví dụ: `\"chatcmpl-9a8b7c6d5e\"`). |\n| **`object`** | Kiểu đối tượng trả về, luôn là `\"chat.completion\"`. |\n| **`created`** | Thời gian tạo (timestamp Unix) của response. |\n| **`model`** | Tên mô hình đã được sử dụng (ví dụ: `\"gpt-4o-mini\"`). |\n| **`choices`** | Danh sách (thường chỉ có một phần tử) chứa kết quả của mô hình. Mỗi phần tử có: <br>• `index` – vị trí trong mảng `choices`. <br>• `message` – dict gồm `role` (thường là `\"assistant\"`) và `content` (nội dung trả lời). <br>• `finish_reason` – lý do dừng (ví dụ: `\"stop\"`). |\n| **`usage`** | Thông tin về token đã tiêu thụ: <br>• `prompt_tokens` – số token của prompt. <br>• `completion_tokens` – số token của phần trả lời. <br>• `total_tokens` – tổng số token (prompt + completion). |\n\nNhững trường này tạo nên **giao diện thống nhất** (universal interface) cho mọi API AI, cho phép bạn dễ dàng duyệt và trích xuất thông tin cần thiết từ response.",
+      "tokens": 1908,
+      "faithfulness": 0.87,
+      "relevance": 1.0,
+      "context_precision": 0.33
+    },
+    {
+      "question": "Giải thích cơ chế hoạt động và vai trò của lớp @dataclass trong lập trình AI với Python.",
+      "answer": "I cannot find enough information in the provided documents.",
+      "tokens": 1958,
+      "faithfulness": 0.0,
+      "relevance": 0.0,
+      "context_precision": 0.0
+    },
+    {
+      "question": "Sự khác biệt cốt lõi giữa Parent Chunking và Child Chunking trong chiến lược RAG là gì?",
+      "answer": "I cannot find enough information in the provided documents.",
+      "tokens": 1744,
+      "faithfulness": 0.0,
+      "relevance": 0.0,
+      "context_precision": 0.0
+    },
+    {
+      "question": "Khoảng cách Cosine Similarity trong tìm kiếm vector dùng để đo lường điều gì giữa câu hỏi và đoạn văn bản?",
+      "answer": "Cosine Similarity đo **góc (hoặc độ lệch) giữa hai vector** – ở đây là vector nhúng của câu hỏi và của đoạn văn bản. Giá trị này cho biết mức độ **tương đồng ngữ nghĩa** của chúng: giá trị gần 1 nghĩa là hai vector (và do đó hai câu) có hướng gần nhau, tức là nội dung, ý nghĩa của câu hỏi và đoạn văn bản rất giống nhau; giá trị gần 0 hoặc âm nghĩa là chúng ít liên quan hoặc thậm chí trái ngược nhau. Vì vậy, trong tìm kiếm vector, cosine similarity được dùng để đánh giá mức độ “giống nhau” về ý nghĩa giữa câu hỏi và các đoạn văn bản.",
+      "tokens": 2003,
+      "faithfulness": 1.0,
+      "relevance": 1.0,
+      "context_precision": 0.0
+    },
+    {
+      "question": "Tại sao trong prompt của hệ thống RAG thường có chỉ dẫn: 'Answer based ONLY on the following context'?",
+      "answer": "Trong prompt của hệ thống RAG thường có câu **“Answer based ONLY on the following context”** vì mục đích chính là **ngăn ngừa hiện tượng hallucination** – tức là ngăn LLM trả lời dựa trên kiến thức nội bộ đã được huấn luyện mà không dựa vào các đoạn văn bản đã được truy xuất.\n\nKhi không có chỉ dẫn này, mô hình có thể:\n\n* **Kết hợp** kiến thức từ dữ liệu huấn luyện (có thể không chứa hoặc không cập nhật thông tin riêng tư, chính sách nội bộ, v.v.) với câu hỏi, dẫn đến câu trả lời **sai** hoặc **đầy đủ nhưng không dựa trên nguồn** mà chúng ta đã cung cấp.  \n* Tạo ra câu trả lời **hợp lý về mặt ngôn ngữ** nhưng **không có căn cứ** trong tài liệu thực tế, gây rủi ro khi sử dụng trong các ứng dụng yêu cầu độ chính xác cao (ví dụ: trả lời các câu hỏi về chính sách công ty, quy trình pháp lý, …).\n\nDo đó, câu lệnh này buộc mô hình **bỏ qua kiến thức nội bộ** và **chỉ sử dụng** các đoạn văn bản (context) mà hệ thống RAG đã truy xuất được. Các lựa chọn khác như “tiết kiệm token” hay “làm câu trả lời ngắn hơn” chỉ là hệ quả phụ, không phải mục đích chính.  \n\n*(Tham khảo: MCQ trong tài liệu tuần 4 – đáp án (b) “To prevent hallucination from the LLM's training data”.)*",
+      "tokens": 1470,
+      "faithfulness": 1.0,
+      "relevance": 1.0,
+      "context_precision": 0.67
+    },
+    {
+      "question": "Một pipeline RAG cơ bản gồm những giai đoạn xử lý tuần tự nào từ khi nhận câu hỏi đến khi trả lời?",
+      "answer": "Một pipeline RAG cơ bản thực hiện **năm giai đoạn** tuần tự như sau:\n\n1. **EMBED** – Nhúng (embed) câu hỏi thành vector.  \n2. **SEARCH** – Dùng vector này để tìm các đoạn (chunks) liên quan trong VectorStore (top‑k).  \n3. **BUILD** – Xây dựng prompt cho LLM, chèn các đoạn đã lấy được làm ngữ cảnh.  \n4. **CALL LLM** – Gọi mô hình ngôn ngữ với prompt đã xây dựng để sinh câu trả lời.  \n5. **RETURN** – Trả về **câu trả lời + các nguồn (sources)** (các chunk và điểm số) để người dùng hoặc hệ thống có thể kiểm chứng kết quả.  \n\nNhư vậy, từ khi nhận câu hỏi đến khi trả lời, pipeline RAG đi qua: **embed → search → build prompt → call LLM → return answer & sources**.",
+      "tokens": 2309,
+      "faithfulness": 1.0,
+      "relevance": 1.0,
+      "context_precision": 0.33
+    },
+    {
+      "question": "Khi xây dựng prompt cho RAG, việc gắn nguồn trích dẫn (citations) kèm theo mỗi đoạn chunk mang lại lợi ích gì?",
+      "answer": "I cannot find enough information in the provided documents.",
+      "tokens": 1891,
+      "faithfulness": 0.0,
+      "relevance": 0.0,
+      "context_precision": 0.0
+    },
+    {
+      "question": "Trong đánh giá hệ thống RAG, chỉ số Faithfulness (độ trung thực) đo lường điều gì?",
+      "answer": "**Faithfulness** đo mức độ **câu trả lời được “grounded” (có căn cứ) trong ngữ cảnh đã truy xuất** – tức là các khẳng định, nội dung của đáp án có được hỗ trợ/bằng chứng từ các đoạn văn bản mà hệ thống RAG lấy về hay không. Nếu mọi câu trả lời đều dựa trên thông tin thực tế trong các chunk được truy xuất, chỉ số Faithfulness sẽ cao.",
+      "tokens": 1836,
+      "faithfulness": 1.0,
+      "relevance": 1.0,
+      "context_precision": 0.67
+    },
+    {
+      "question": "Tại sao khi sử dụng LLM làm giám khảo (LLM-as-a-judge) để chấm điểm Faithfulness, ta cần thiết lập temperature=0.0?",
+      "answer": "I cannot find enough information in the provided documents.",
+      "tokens": 2007,
+      "faithfulness": 0.0,
+      "relevance": 0.0,
+      "context_precision": 0.0
+    },
+    {
+      "question": "Giá cổ phiếu hiện tại của tập đoàn Microsoft trên sàn NASDAQ là bao nhiêu USD?",
+      "answer": "I cannot find enough information in the provided documents.",
+      "tokens": 892,
+      "faithfulness": 0.0,
+      "relevance": 0.0,
+      "context_precision": 0.0
+    },
+    {
+      "question": "Đội tuyển bóng đá quốc gia nào sẽ đăng cai tổ chức kỳ World Cup gần nhất sau năm 2026?",
+      "answer": "I cannot find enough information in the provided documents.",
+      "tokens": 2019,
+      "faithfulness": 0.0,
+      "relevance": 0.0,
+      "context_precision": 0.0
+    },
+    {
+      "question": "Hướng dẫn chi tiết công thức nấu món phở bò truyền thống chuẩn vị Hà Nội?",
+      "answer": "I cannot find enough information in the provided documents.",
+      "tokens": 1861,
+      "faithfulness": 0.0,
+      "relevance": 0.0,
+      "context_precision": 0.0
+    }
+  ]
+}
