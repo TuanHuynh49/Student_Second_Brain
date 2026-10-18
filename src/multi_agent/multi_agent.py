@@ -1,11 +1,7 @@
 
 import asyncio
 
-from src.multi_agent.coordinator_agent import (
-    CoordinatorAgent,
-    client,
-    model,
-)
+from src.multi_agent.coordinator_agent import CoordinatorAgent
 from src.multi_agent.research_agent import ResearchAgent
 from src.multi_agent.answer_agent import AnswerAgent
 from src.multi_agent.evidence_checker_agent import EvidenceCheckerAgent
@@ -16,7 +12,7 @@ class MultiAgentSystem:
         self.coordinator = CoordinatorAgent()
         self.researcher = ResearchAgent()
         self.answer_agent = AnswerAgent()
-        self.evidence_checker = EvidenceCheckerAgent(client, model)
+        self.evidence_checker = EvidenceCheckerAgent()
 
         # Tổng số lượt tìm kiếm tối đa, tính cả lượt đầu.
         self.max_attempts = max(1, max_attempts)
