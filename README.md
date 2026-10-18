@@ -135,8 +135,6 @@ Student_Second_Brain/
 ├── .env.example                # Bản mẫu cấu hình an toàn (không chứa key bí mật)
 ├── .gitignore                  # Cấu hình bảo mật, chặn lộ key .env
 ├── ai-usage.md                 # Bản khai báo sử dụng AI theo chuẩn liêm chính học thuật
-├── Makefile                    # Lệnh make setup, make demo, make eval
-├── run.bat                     # File kích hoạt chạy nhanh 1-click trên Windows
 ├── main.py                     # Điểm khởi chạy chính thức của hệ thống
 └── README.md                   # Hướng dẫn chi tiết sử dụng và vận hành
 ```
