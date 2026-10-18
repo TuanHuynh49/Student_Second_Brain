@@ -1,4 +1,0 @@
-{"timestamp": "2026-10-18T17:56:16.457374+07:00", "run_id": "run_20261018_175616_fd528b", "event": "run_started", "log_file": "run_20261018_175616_fd528b.jsonl"}
-{"timestamp": "2026-10-18T17:56:16.458392+07:00", "run_id": "run_20261018_175616_fd528b", "event": "application_started"}
-{"timestamp": "2026-10-18T17:56:16.995273+07:00", "run_id": "run_20261018_175616_fd528b", "event": "application_error", "error_type": "ExceptionGroup", "error": "unhandled errors in a TaskGroup (1 sub-exception)"}
-{"timestamp": "2026-10-18T17:56:17.058373+07:00", "run_id": "run_20261018_175616_fd528b", "event": "run_finished", "status": "failed"}
