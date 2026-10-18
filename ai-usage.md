@@ -60,6 +60,7 @@ Nhóm cam kết tuân thủ nghiêm ngặt các quy định về liêm chính h�
 | 4 | 16/10 | Xây dựng 5 tài liệu bài giảng mới | Hỗ trợ soạn thảo nội dung kỹ thuật cho `DOC0004.md` đến `DOC0008.md` (Hệ điều hành, Mạng máy tính, CSDL, Python nâng cao, MCP). | Rà soát kiến thức lý thuyết, bổ sung tiêu đề chuẩn và siêu dữ liệu (metadata) theo đúng yêu cầu đề tài. |
 | 5 | 17/10 | Biên soạn bộ câu hỏi `testset.jsonl` | Gợi ý 36 câu hỏi bao phủ 8 tài liệu, phân bổ $\ge 4$ câu `no_answer = true` trên mỗi 12 câu để kiểm tra độ kháng ảo giác. | Đối chiếu từng câu hỏi với bài giảng, tinh chỉnh đáp án kỳ vọng (`expected_answer`) và chạy kiểm thử đo lường Token USAGE. |
 | 6 | 17/10–18/10 | Soạn thảo và tối ưu Báo cáo | Hỗ trợ cấu trúc dàn ý Word, thiết kế sơ đồ Mermaid 3 ranh giới cân đối khối vuông và chuẩn hóa văn phong tiếng Anh. | Kiểm tra lại toàn bộ commit hash thực tế của 3 thành viên, số liệu đo lường thực nghiệm và đóng gói phụ lục. |
+| 7 | 18/10 | **Xây dựng bộ công cụ xuất CSV và biểu đồ (`src/evaluation/export_benchmark.py`)** | Hỗ trợ thiết kế logic đọc động từ file log `.jsonl`, tính toán chi phí theo công thức `.env` (`$2/$10`), và dùng `matplotlib` vẽ biểu đồ cột chồng 300 DPI với nhãn số liệu và đường nét đứt mức trung bình. | Rà soát và tinh giản cấu trúc chỉ còn 3 hàm dễ hiểu, kiểm tra file CSV xuất ra khớp với dữ liệu chạy thực nghiệm và bảo đảm logic mạch lạc, tự tin giải thích khi vấn đáp với giảng viên. |
 
 ---
 
@@ -74,6 +75,7 @@ Nhóm cam kết tuân thủ nghiêm ngặt các quy định về liêm chính h�
 | 2 | 15/10 | Cơ chế an toàn Atomic Rollback | Tham khảo phương án sao lưu dữ liệu nguyên tử khi thao tác ghi đè file gặp sự cố. | Tự viết khối `try...except` sao lưu `old_content`, tự động khôi phục nội dung file gốc nếu bước tái lập VectorStore thất bại. |
 | 3 | 16/10 | Mô-đun Tool Adapter | Hỗ trợ thuật toán chuyển đổi JSON Schema của MCP sang định dạng Function Calling của OpenAI API. | Hiện thực module `src/mcp/tool_adapter.py`, viết hàm `discover_mcp_tools()` tự động khám phá tool động qua `client.list_tools()`. |
 | 4 | 16/10–17/10 | Phân hệ Multi-Agent | Hỗ trợ thiết kế cấu trúc phân vai 4 tác tử: `Coordinator`, `Researcher`, `EvidenceChecker`, `AnswerAgent`. | Trực tiếp hiện thực hóa chu trình tự sửa sai (Query Reformulation Loop) với `max_attempts = 3` trong `multi_agent.py`. |
+| 5 | 18/10 | **Phát triển MCP Client thứ 2 độc lập (`src/mcp/mcp_client.py`)** | Hỗ trợ cấu hình StdioServerParameters kết nối subprocess tới `src.mcp.server`, xử lý truyền `PYTHONPATH` tránh lỗi `ModuleNotFoundError`, và hiện thực cơ chế nhập văn bản nhiều dòng (kết thúc bằng `END`) kèm tự động verify lại bằng lệnh `get`. | Trực tiếp chạy interactive test bằng tay trên terminal, kiểm thử cả 3 thao tác (`search`, `get`, `update`), phục hồi file an toàn khi test và xác minh tính tương thích độc lập giữa Client thứ 2 và Server theo chuẩn MCP. |
 
 ---
 
@@ -86,7 +88,7 @@ so sánh ưu nhược điểm của việc dùng 2 dataclass phẳng (ParentChun
 Chỉ giải thích bản chất và đặt câu hỏi gợi mở, không viết sẵn code hoàn chỉnh vì tôi muốn tự lập trình."
 ```
 
-### 4.2. Prompt sinh mã Parser.py và bộ câu hỏi kiểm soát ảo giác (Thành viên B - Huỳnh Lê Anh Tuấn)
+### 4.2. Prompt của Thành viên B (Huỳnh Lê Anh Tuấn)
 * **Prompt sinh mã `src/agent/Parser.py`**:
 ```text
 "Hãy viết giúp tôi module src/agent/Parser.py bằng Python sử dụng thư viện re (regex) và json. 
@@ -103,11 +105,29 @@ Quy tắc bắt buộc: cứ mỗi 12 câu thì phải có ít nhất 4 câu no_
 không có trong tài liệu môn học) để chúng tôi kiểm tra tính nghiêm ngặt của prompt chống ảo giác."
 ```
 
-### 4.3. Prompt hỗ trợ giao thức MCP Stdio (Thành viên C - Lê Khánh Duy)
+* **Prompt xây dựng công cụ xuất CSV và biểu đồ Token Usage (`src/evaluation/export_benchmark.py`)**:
+```text
+"Hãy viết giúp tôi một script Python đơn giản (src/evaluation/export_benchmark.py) để:
+1. Đọc động file log .jsonl từ thư mục logs/, trích xuất câu hỏi và token tiêu thụ từng câu.
+2. Xuất bảng chi tiết ra logs/eval_benchmark_detail.csv kèm theo tính chi phí dựa trên đơn giá .env ($2/$10 mỗi triệu tokens) và dòng Average ở cuối.
+3. Dùng matplotlib vẽ biểu đồ cột chồng (Prompt Tokens và Completion Tokens) 300 DPI lưu vào logs/chart_token_usage.png có hiển thị số token trên đầu mỗi cột và đường nét đứt mức trung bình."
+```
+
+### 4.3. Prompt của Thành viên C (Lê Khánh Duy)
+* **Prompt hỗ trợ giao thức MCP Stdio**:
 ```text
 "Trong Python MCP SDK, làm thế nào để cấu hình server chạy qua stdio transport mà đảm bảo stdout hoàn toàn 
 sạch (chỉ chứa bản tin JSON-RPC hợp lệ), còn toàn bộ thông tin log/debug phải chuyển hướng sang stderr 
 để không làm gãy kết nối với client?"
+```
+
+* **Prompt phát triển ứng dụng MCP Client thứ 2 độc lập (`src/mcp/mcp_client.py`)**:
+```text
+"Hãy viết một ứng dụng Python Client độc lập (src/mcp/mcp_client.py) kết nối tới MCP Server qua stdio transport. 
+Yêu cầu: 
+1. Tự động khám phá công cụ động qua list_tools(). 
+2. Cung cấp menu console trực quan cho người dùng chọn gọi search, get, hoặc update. 
+3. Ở chức năng update, cho phép nhập văn bản nhiều dòng và kết thúc bằng từ khóa END trên một dòng mới. Sau khi update xong, tự động gọi get để kiểm chứng lại nội dung đã lưu trên đĩa."
 ```
 
 ---
