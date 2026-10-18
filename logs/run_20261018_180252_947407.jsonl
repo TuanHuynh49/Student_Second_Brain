@@ -1,0 +1,5 @@
+{"timestamp": "2026-10-18T18:02:52.258826+07:00", "run_id": "run_20261018_180252_947407", "event": "run_started", "log_file": "run_20261018_180252_947407.jsonl"}
+{"timestamp": "2026-10-18T18:02:52.259824+07:00", "run_id": "run_20261018_180252_947407", "event": "application_started"}
+{"timestamp": "2026-10-18T18:04:26.266023+07:00", "run_id": "run_20261018_180252_947407", "event": "mcp_tools_discovered", "tools": [{"name": "search", "description": "\nTìm kiếm các đoạn văn bản liên quan đến câu hỏi.\n"}, {"name": "get", "description": "\nLấy toàn bộ nội dung của một tài liệu theo Document ID.\n"}, {"name": "update", "description": "\nCập nhật nội dung file TXT và đồng bộ lại VectorStore/cache.\n"}], "tool_count": 3}
+{"timestamp": "2026-10-18T18:09:00.712916+07:00", "run_id": "run_20261018_180252_947407", "event": "application_exit_requested"}
+{"timestamp": "2026-10-18T18:09:02.704315+07:00", "run_id": "run_20261018_180252_947407", "event": "run_finished", "status": "completed"}

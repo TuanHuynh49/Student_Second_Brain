@@ -19,8 +19,24 @@ If the context does not contain enough information, say: "I cannot find enough i
 Context:
 {context}
 
-Question: {question}"""
 
+Question: {question}"""
+DECOMPOSE_PROMPT = """Break this answer into individual factual claims.
+Return one claim per line. Do not add anything else.
+
+Answer:
+{answer}"""
+
+JUDGE_PROMPT = """You are a strict verifier.
+Check whether the given claim is SUPPORTED by the context.
+
+Context:
+{context}
+
+Claim:
+{claim}
+
+Is this claim supported by the context? Answer only "YES" or "NO"."""
 
 class StudentSecondBrainRAG:
     def __init__(self, store: Optional[VectorStore] = None):
@@ -93,7 +109,7 @@ class StudentSecondBrainRAG:
         
         try:
             response = self.client.chat.completions.create(
-                model="openai/gpt-oss-120b", # Có thể thay thế bằng model phù hợp trên Groq (ví dụ: llama3-70b-8192)
+                model="openai/gpt-oss-120b",    
                 messages=messages,
                 temperature=0.1,         
                 max_tokens=1024
