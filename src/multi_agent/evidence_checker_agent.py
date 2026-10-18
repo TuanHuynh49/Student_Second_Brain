@@ -1,14 +1,12 @@
 
 import json
 
-from openai import OpenAI
+from src.LLM.Client import call_llm
 
 
 class EvidenceCheckerAgent:
-    def __init__(self, client: OpenAI, model: str):
+    def __init__(self, client=None, model=None):
         self.name = "Evidence Checker Agent"
-        self.client = client
-        self.model = model
 
     def check(self, question: str, evidence: list[str]) -> dict:
         if not evidence:
@@ -28,12 +26,10 @@ class EvidenceCheckerAgent:
             for item in evidence
         )
 
-        response = self.client.chat.completions.create(
-            model=self.model,
-            messages=[
-                {
-                    "role": "system",
-                    "content": """
+        message = call_llm([
+            {
+                "role": "system",
+                "content": """
 Bạn là Evidence Checker Agent của Student Second Brain.
 
 Nhiệm vụ: đánh giá xem bằng chứng có đủ để trả lời câu hỏi
@@ -52,20 +48,17 @@ Chỉ trả về JSON hợp lệ:
   "reason": "Giải thích ngắn gọn"
 }
 """
-                },
-                {
-                    "role": "user",
-                    "content": (
-                        f"Câu hỏi:\n{question}\n\n"
-                        f"Bằng chứng:\n{evidence_text}"
-                    )
-                }
-            ],
-            response_format={"type": "json_object"},
-            temperature=0
-        )
+            },
+            {
+                "role": "user",
+                "content": (
+                    f"Câu hỏi:\n{question}\n\n"
+                    f"Bằng chứng:\n{evidence_text}"
+                )
+            }
+        ])
 
-        content = response.choices[0].message.content
+        content = message.content
         if not content:
             raise ValueError(
                 "Evidence Checker không trả về kết quả."

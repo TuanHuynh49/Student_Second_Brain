@@ -4,27 +4,10 @@ import os
 from pathlib import Path
 
 from dotenv import load_dotenv
-from openai import OpenAI
+from src.LLM.Client import call_llm
 
-
-# 1. Đọc cấu hình từ file .env
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 load_dotenv(PROJECT_ROOT / ".env")
-
-# Hỗ trợ cả hai cách đặt tên biến API key
-api_key = (
-    os.getenv("OPENAI_API_KEY")
-)
-
-model = os.getenv("OPENAI_MODEL", "gpt-oss-120b-medium")
-
-if not api_key:
-    raise ValueError(
-        "Không tìm thấy OPENAI_API_KEY hoặc OPEN_API_KEY trong file .env"
-    )
-
-client = OpenAI(api_key=api_key)
-
 
 
 class CoordinatorAgent:
@@ -37,9 +20,7 @@ class CoordinatorAgent:
         if not user_query or not user_query.strip():
             raise ValueError("Câu hỏi không được để trống.")
 
-        response = client.chat.completions.create(
-            model=model,
-            messages=[
+        message = call_llm([
                 {
                     "role": "system",
                     "content": """
@@ -51,13 +32,13 @@ Phân loại yêu cầu của người dùng thành chính xác một intent đ�
 Các intent:
 
 1. `search_documents`
-   Sử dụng khi câu hỏi cần tìm kiếm tài liệu học tập, tra cứu thông tin trong tài liệu, giải thích khái niệm dựa trên tài liệu hoặc tóm tắt các phần tài liệu liên quan.
+   Sử dụng cho MỌI câu hỏi tìm kiếm tài liệu, giải thích khái niệm học thuật, kỹ thuật, lý thuyết hay kiến thức chuyên môn (Python, AI, LLM, RAG, Chunking, Prompt, Tokens, Streaming, Embeddings, Agents, Database, Mạng máy tính, v.v.) hoặc các câu hỏi cần kiểm tra đối chiếu kiến thức. Khi người dùng hỏi bất kỳ câu hỏi nào về kiến thức, luôn ưu tiên chọn `search_documents`.
 
 2. `react_tools`
-   Sử dụng khi yêu cầu cần thực hiện thao tác thông qua công cụ, chẳng hạn như đọc toàn bộ tài liệu theo ID, cập nhật nội dung tài liệu hoặc thực hiện một tác vụ gồm nhiều bước sử dụng công cụ.
+   Sử dụng khi yêu cầu cần thực hiện thao tác tác động thông qua công cụ, chẳng hạn như đọc toàn bộ tài liệu theo ID cụ thể (ví dụ doc_DOC0001), cập nhật nội dung ghi chú/tài liệu, hoặc thực hiện một quy trình thao tác nhiều bước sử dụng công cụ.
 
 3. `general_question`
-   Sử dụng cho lời chào, lời cảm ơn và các cuộc hội thoại đơn giản không cần tìm kiếm tài liệu hoặc sử dụng công cụ.
+   CHỈ sử dụng cho các tương tác chào hỏi xã giao thuần túy (ví dụ: 'xin chào', 'hello', 'bạn là ai', 'bạn có thể làm gì'), lời cảm ơn hoặc tạm biệt. TUYỆT ĐỐI KHÔNG chọn `general_question` cho các câu hỏi chứa nội dung học thuật, kiến thức hoặc câu hỏi thực chất.
 
 Quy tắc:
 - Chỉ chọn đúng một intent trong ba intent trên.
@@ -77,11 +58,9 @@ Quy tắc:
                     "content": user_query
                 }
             ],
-            response_format={"type": "json_object"},
-            temperature=0
         )
 
-        content = response.choices[0].message.content
+        content = message.content
 
         if not content:
             raise ValueError("Coordinator không trả về kết quả.")
@@ -119,9 +98,7 @@ Quy tắc:
     ) -> str:
         """Tạo query tìm kiếm mới dựa trên bằng chứng chưa đủ."""
 
-        response = client.chat.completions.create(
-            model=model,
-            messages=[
+        message = call_llm([
                 {
                     "role": "system",
                     "content": """
@@ -151,11 +128,9 @@ Quy tắc:
                     )
                 }
             ],
-            response_format={"type": "json_object"},
-            temperature=0
         )
 
-        content = response.choices[0].message.content
+        content = message.content
 
         if not content:
             raise ValueError(
