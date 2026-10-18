@@ -7,5 +7,5 @@ class Query:
     top_k: int = 5
     score_threshold:float=0.0
     metadata:dict=field(default_factory=dict)
-    # subject
+    # course
     # doc_id
