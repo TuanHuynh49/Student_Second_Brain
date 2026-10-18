@@ -48,8 +48,8 @@ class DocumentStore:
                 raise ValueError(f"{c.chunk_id}: doc_id={c.doc_id!r} khác tài liệu {doc.doc_id!r}")
             child_ids.add(c.chunk_id)
 
-    def add(self, doc: Document, subject: str = None, child_max: int = 600, child_overlap: int = 80) -> str:
-        self._assign_document_id(doc, subject)
+    def add(self, doc: Document, child_max: int = 600, child_overlap: int = 80) -> str:
+        self._assign_document_id(doc)
 
         if doc.doc_id in self.documents:
             self.delete_document(doc.doc_id)
@@ -60,18 +60,23 @@ class DocumentStore:
         self._persist(doc, parents, children)
 
         return doc.doc_id
-    def _assign_document_id(self, doc: Document,subject:str=None) -> None:
+
+    def _assign_document_id(self, doc: Document) -> None:
         if not doc.doc_id:
             doc.title = doc.title or "unnamed"
             doc.doc_id = f"doc_{doc.title}"
-        doc.metadata["subject"]=subject
+            
+        if "course" not in doc.metadata or not doc.metadata["course"]:
+            doc.metadata["subject"] = "General"
         
     def _generate_chunks(self, doc: Document, child_max: int = 600, child_overlap: int = 80) -> tuple[list[ParentChunk], list[ChildChunk]]:
+        # Giữ nguyên cấu trúc structural chunking cũ bên dưới phần header
         raw_parents = ParentChunking(doc) or []
         parents = []
         for idx, p in enumerate(raw_parents, 1):
             p.doc_id = doc.doc_id
-            p.metadata["subject"] = doc.metadata.get("subject", None)
+            p.metadata["course"] = doc.metadata.get("course", "General")
+            p.metadata["week"] = doc.metadata.get("week", "")
             p.parent_id = f"parent_{doc.title}_{idx:03d}"
             parents.append(p)
 
@@ -82,12 +87,14 @@ class DocumentStore:
             for c in raw_children:
                 c.doc_id = doc.doc_id
                 c.parent_id = p.parent_id
-                c.metadata["subject"] = p.metadata.get("subject", None)
+                c.metadata["course"] = doc.metadata.get("course", "Genral")
+                c.metadata["week"] = doc.metadata.get("week", "")
                 c.chunk_id = f"child_{doc.title}_{child_counter:04d}"
                 children.append(c)
                 child_counter += 1
                 
         return parents, children
+
     def _persist(self, doc: Document, parents: list[ParentChunk], children: list[ChildChunk]) -> None:
         self.documents[doc.doc_id] = doc
         self.parents_in_doc[doc.doc_id] = [p.parent_id for p in parents]

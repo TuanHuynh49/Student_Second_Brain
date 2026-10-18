@@ -8,10 +8,31 @@ import re
 from datetime import datetime
 from dotenv import load_dotenv
 import os
-
+import re
+from pathlib import Path
+from datetime import datetime
+from typing import Optional
+from src.models.Document import Document
+from src.models.DocumentChunk import ParentChunk, ChildChunk
 load_dotenv()
 
-
+def extract_markdown_metadata(content: str) -> dict:
+    metadata = {}
+    
+    header_part = content.split("---")[0] if "---" in content else content[:1000]
+    
+    course_match = re.search(r"\*\*Course:\*\*\s*(.+)", header_part)
+    if course_match:
+        metadata["course"] = course_match.group(1).strip()
+    
+    week_match = re.search(r"\*\*Week:\*\*\s*(.+)", header_part)
+    if week_match:
+        metadata["week"] = week_match.group(1).strip()
+        
+    prereq_match = re.search(r"\*\*Prerequisites:\*\*\s*(.+)", header_part)
+    if prereq_match:
+        metadata["prerequisites"] = prereq_match.group(1).strip()
+    return metadata
 def loaddoc(filename: str) -> Optional[Document]:
     base = os.getenv("DOC_PATH")
     if not base:
@@ -22,14 +43,16 @@ def loaddoc(filename: str) -> Optional[Document]:
         return None
 
     text = path.read_text(encoding="utf-8")
+    doc_metadata = {"docType": path.suffix}
+    if path.suffix == ".md":
+        doc_metadata.update(extract_markdown_metadata(text))
+
     return Document(
         content=text,
         source=str(path),
         title=path.stem,
-        metadata={"docType": path.suffix},
+        metadata=doc_metadata,
     )
-
-
 def markdownChunkingParent(doc: Document) -> list[ParentChunk]:
     parents = []
     heading = list(re.finditer(r"^#+.*?$", doc.content, re.MULTILINE))
@@ -131,7 +154,6 @@ def headerCheck(doc: Document) -> bool:
     return match is not None
 
 
-# ===== LỖI 1: ParentChunking =====
 def ParentChunking(doc: Document, parent_max: int = 1500, parent_overlap: int = 150):
     doc_type = doc.metadata.get("docType")
     if doc_type == ".md":
