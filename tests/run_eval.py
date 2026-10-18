@@ -21,4 +21,4 @@ def chunking_state1():
 if __name__=="__main__":
     store=VectorStore().load()
     print(len(store.list_all()))
-    stro
+    
