@@ -12,32 +12,6 @@ from src.evaluation.evaluator import Evaluator, EvalExample
 
 load_dotenv()
 
-def chunking_state1():
-    """Hàm kiểm thử trạng thái chunking và thêm document vào store (Đã sửa lỗi dict thành Document)."""
-    print("[cyan]🔧 Đang chạy kiểm tra chunking_state1...[/cyan]")
-    store = VectorStore()
-    
-    # Dữ liệu mẫu dưới dạng dictionary (nguyên nhân gây lỗi AttributeError trước đó)
-    res3 = {
-        "content": "Python Data Structures như list, tuple, dict, set đóng vai trò cốt lõi trong các ứng dụng AI.",
-        "source": "data/sample_doc.txt",
-        "title": "w1_lecture_notes",
-        "metadata": {"docType": ".md", "course": "AI Programming with Python"}
-    }
-    
-    # 🛠 SỬA LỖI: Chuyển đổi dictionary (res3) thành đối tượng Document trước khi truyền vào store.add()
-    doc_obj = Document(
-        content=res3.get("content", ""),
-        source=res3.get("source", ""),
-        title=res3.get("title", ""),
-        metadata=res3.get("metadata", {})
-    )
-    
-    store.add(doc_obj)
-    print(f"[green]✔ Thêm Document thành công vào store. Tổng số tài liệu: {len(store.documents)}[/green]")
-    return store
-
-
 def run_benchmark_13_questions():
     """Chạy Batch Test Benchmark 13 câu hỏi với Dense Search và lưu log JSON."""
     print("[bold cyan]🚀 Bắt đầu chạy Batch Test Benchmark RAG Pipeline (Dense Search - 13 Câu hỏi)...[/bold cyan]")
@@ -74,7 +48,6 @@ def run_benchmark_13_questions():
     table = Table(title="📊 BẢNG KẾT QUẢ BENCHMARK DENSE SEARCH (13 CÂU)")
     table.add_column("Q#", justify="center", style="cyan")
     table.add_column("Câu hỏi", style="white", max_width=35)
-    table.add_column("Loại", justify="center", style="yellow")
     table.add_column("Faithfulness", justify="right", style="green")
     table.add_column("Relevance", justify="center", style="yellow")
     table.add_column("Precision", justify="right", style="magenta")
@@ -98,7 +71,6 @@ def run_benchmark_13_questions():
         record = {
             "question": q,
             "answer": answer,
-            "type": "answerable" if is_answerable else "unanswerable",
             "tokens": tokens,
             "faithfulness": res.get("faithfulness", 0.0),
             "relevance": res.get("relevance", 0.0),
@@ -133,6 +105,4 @@ def run_benchmark_13_questions():
 
 
 if __name__ == "__main__":
-    chunking_state1()
-    print("\n" + "="*50 + "\n")
     run_benchmark_13_questions()
