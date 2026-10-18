@@ -155,7 +155,6 @@ def load_vector_store() -> VectorStore:
         )
         return build_vector_store()
 
-
 with contextlib.redirect_stdout(sys.stderr):
     vector_store = load_vector_store()
 
@@ -187,38 +186,58 @@ def resolve_document_path(source: str) -> Path:
 # ============================================================
 
 @mcp.tool()
-def search(query: str, top_k: int = 5) -> str:
+def search(
+    query: str,
+    top_k: int = 5,
+    metadata_filter: dict | None = None
+) -> str:
     """
-    Tìm kiếm các đoạn văn bản liên quan đến câu hỏi.
+    Tìm kiếm tài liệu, hỗ trợ filter theo course và doc_id.
     """
     if is_empty(query):
         return "Vui lòng nhập nội dung cần tìm kiếm."
 
     try:
-        qr = Query(query, top_k)
+        qr = Query(
+            text=query,
+            top_k=top_k,
+            metadata=metadata_filter or {}
+        )
 
-        results_chunk = []
         results = retrieve(qr, vector_store)
-
-        for idx, res_chunk in enumerate(results, 1):
-                    parent = res_chunk.parent
-                    results_chunk.append(
-                    f"[Kết quả {idx}] Score: {res_chunk.score:.4f}\n"
-                    f"Doc ID: {res_chunk.parent.doc_id}\n"
-                    f"Source: {parent.source or 'N/A'}\n"
-                    f"Parent Section: {res_chunk.parent.section}\n"
-                    f"Parent Content: {res_chunk.parent.content}...\n"
-                    f"Số lượng matched children: {len(res_chunk.matched_children)}"
-                )
 
         if not results:
             return "Không tìm thấy kết quả phù hợp."
 
+        results_chunk = []
+
+        for idx, res_chunk in enumerate(results, 1):
+            parent = res_chunk.parent
+
+            results_chunk.append(
+                f"[Kết quả {idx}]\n"
+                f"Retrieval Score: {res_chunk.score:.4f}\n"
+                f"Doc ID: {parent.doc_id or 'N/A'}\n"
+                f"Source: {parent.source or 'N/A'}\n"
+                f"Parent Section: {parent.section or 'N/A'}\n"
+                f"Parent Content:\n{parent.content}\n"
+                f"Số lượng matched children: "
+                f"{len(res_chunk.matched_children)}"
+            )
+
+        logger.info(
+            "Search query=%r, top_k=%d, metadata_filter=%s, results=%d",
+            query,
+            top_k,
+            metadata_filter,
+            len(results)
+        )
+
         return "\n\n--------------------\n\n".join(results_chunk)
 
-    except Exception as e:
+    except Exception:
         logger.exception("Lỗi khi search")
-        return f"Lỗi tìm kiếm: {e}"
+        return "Lỗi tìm kiếm. Vui lòng kiểm tra log của server."
 
 
 # ============================================================
