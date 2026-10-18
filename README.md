@@ -145,6 +145,6 @@ Student_Second_Brain/
 
 | Thành viên | Trách nhiệm chuyên môn chính | Tỷ lệ đóng góp | Commit Hash tiêu biểu |
 | :--- | :--- | :---: | :--- |
-| **Trần Lê Dũng**<br>(Role A) | Thiết kế pipeline Ingestion, Parent-Child Chunking, thuật toán Hybrid Search (Dense + BM25) kết hợp RRF ($k=60$), VectorStore cache. | **33.3%** | `401546a`, `2d5a78c`, `f4b5ee6` |
-| **Huỳnh Lê Anh Tuấn**<br>(Role B) | Vòng lặp tự chủ ReAct `Loop.py`, Bộ nhớ cửa sổ trượt `Memory.py`, bắt lỗi cú pháp `Parser.py`, bộ testset 36 câu, gateway `main.py` và công cụ phân tích benchmark `export_benchmark.py`. | **33.4%** | `3e9e5bf`, `426157b`, `d4ce1de` |
-| **Lê Khánh Duy**<br>(Role C) | Xây dựng MCP Server chuẩn stdio, các tool `search`, `get`, `update`, ứng dụng MCP Client thứ 2 độc lập `mcp_client.py`, cơ chế Atomic Rollback, hệ thống Đa tác tử `MultiAgentSystem`. | **33.3%** | `7ffd454`, `a6094ba`, `01ae85b` |
+| **Trần Lê Dũng**<br>(Role A) | Thiết kế pipeline Ingestion, Parent-Child Chunking, thuật toán Hybrid Search (Dense + BM25) kết hợp RRF ($k=60$), VectorStore cache. | **33.3%** | `f4cd7f3`, `3ba06b5`, `6886f30` |
+| **Huỳnh Lê Anh Tuấn**<br>(Role B) | Vòng lặp tự chủ ReAct `Loop.py`, Bộ nhớ cửa sổ trượt `Memory.py`, bắt lỗi cú pháp `Parser.py`, bộ testset 36 câu, gateway `main.py` và công cụ phân tích benchmark `export_benchmark.py`. | **33.4%** | `5e6643b`, `4d3635a`, `bc21a69` |
+| **Lê Khánh Duy**<br>(Role C) | Xây dựng MCP Server chuẩn stdio, các tool `search`, `get`, `update`, ứng dụng MCP Client thứ 2 độc lập `mcp_client.py`, cơ chế Atomic Rollback, hệ thống Đa tác tử `MultiAgentSystem`. | **33.3%** | `f324de7`, `77d4782`, `6e0df84` |
