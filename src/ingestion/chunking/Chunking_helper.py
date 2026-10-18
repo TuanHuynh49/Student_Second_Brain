@@ -2,18 +2,11 @@ from dataclasses import dataclass, field, asdict
 from pathlib import *
 from src.models.Document import Document
 from src.models.DocumentChunk import ParentChunk, ChildChunk
-import json
 from typing import Optional
-import re
 from datetime import datetime
 from dotenv import load_dotenv
 import os
 import re
-from pathlib import Path
-from datetime import datetime
-from typing import Optional
-from src.models.Document import Document
-from src.models.DocumentChunk import ParentChunk, ChildChunk
 load_dotenv()
 
 def extract_markdown_metadata(content: str) -> dict:

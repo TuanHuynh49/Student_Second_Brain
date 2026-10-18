@@ -1,0 +1,107 @@
+{
+  "total_questions": 13,
+  "search_mode": "dense",
+  "total_tokens": 14580,
+  "results": [
+    {
+      "question": "Python Data Structures nào phù hợp nhất để lưu trữ một embedding vector cố định không thay đổi?",
+      "answer": "I cannot find enough information in the provided documents.",
+      "tokens": 542,
+      "faithfulness": 0.0,
+      "relevance": 0.0,
+      "context_precision": 0.33
+    },
+    {
+      "question": "Cấu trúc của một response object trong OpenAI Chat Completions API gồm những thành phần chính nào?",
+      "answer": "Cấu trúc của một **response object** trả về từ OpenAI Chat Completions API là một **dictionary lồng nhau** gồm các thành phần chính sau:\n\n| Thành phần | Mô tả |\n|------------|------|\n| **`id`** | Mã định danh duy nhất của yêu cầu (ví dụ: `\"chatcmpl-9a8b7c6d5e\"`). |\n| **`object`** | Kiểu đối tượng trả về, thường là `\"chat.completion\"`. |\n| **`created`** | Thời gian tạo (timestamp) của phản hồi. |\n| **`model`** | Tên mô hình đã được sử dụng (ví dụ: `\"gpt-4o-mini\"`). |\n| **`choices`** | Danh sách các **choice** (thường chỉ có một phần tử). Mỗi choice chứa: <br>• `index` – chỉ số của choice.<br>• `message` – một dict với `role` (ví dụ: `\"assistant\"`) và `content` (nội dung trả lời).<br>• `finish_reason` – lý do kết thúc (ví dụ: `\"stop\"`). |\n| **`usage`** | Thông tin về token đã tiêu thụ: <br>• `prompt_tokens` – số token của prompt.<br>• `completion_tokens` – số token của phần trả lời.<br>• `total_tokens` – tổng số token (`prompt_tokens + completion_tokens`). |\n\nNhững trường này tạo nên **giao diện thống nhất** cho mọi API AI, cho phép bạn dễ dàng truy cập nội dung trả lời, thông tin mô hình và chi phí token.",
+      "tokens": 1324,
+      "faithfulness": 1.0,
+      "relevance": 1.0,
+      "context_precision": 0.33
+    },
+    {
+      "question": "Giải thích cơ chế hoạt động và vai trò của lớp @dataclass trong lập trình AI với Python.",
+      "answer": "**Cơ chế hoạt động của `@dataclass`**\n\n- Khi một lớp được trang trí bằng `@dataclass`, Python tự động tạo ra một số phương thức quan trọng cho lớp đó, bao gồm:  \n  - `__init__` – khởi tạo các thuộc tính dựa trên các khai báo kiểu và giá trị mặc định.  \n  - `__repr__` – trả về một chuỗi biểu diễn đối tượng, hữu ích cho việc debug.  \n  - `__eq__` – so sánh hai đối tượng cùng lớp dựa trên giá trị các trường.  \n  - `__hash__` (nếu lớp được khai báo `frozen=True`) – cho phép đối tượng được dùng làm key trong dict hoặc phần tử của set.  \n\n- Đối với các thuộc tính có giá trị mặc định phức tạp (như list, dict, datetime), `@dataclass` khuyến cáo dùng `field(default_factory=…)` để tránh “mutable default” – trường hợp mọi instance sẽ chia sẻ cùng một đối tượng mutable. Ví dụ:  \n\n  ```python\n  from dataclasses import dataclass, field\n  from datetime import datetime\n\n  @dataclass\n  class Document:\n      content: str\n      metadata: dict = field(default_factory=dict)\n      doc_id: str = \"\"\n      created_at: datetime = field(default_factory=datetime.now)\n  ```\n\n  `default_factory` tạo một đối tượng mới mỗi khi một instance được khởi tạo, nên mỗi `Document` có `metadata` và `created_at` riêng biệt.\n\n**Vai trò của `@dataclass` trong lập trình AI với Python**\n\n1. **Mô hình hoá dữ liệu chuẩn**  \n   - Thay thế việc dùng “dictionary với các key dạng chuỗi” (một mẫu thường thấy trong các dự án AI) bằng các đối tượng có kiểu dữ liệu rõ ràng.  \n   - Ví dụ, thay vì `doc = {\"content\": \"...\", \"metadata\": {...}}`, ta có `doc = Document(content=\"...\", metadata={...})`.\n\n2. **Tăng tính an toàn và hỗ trợ IDE**  \n   - Khi các thuộc tính được khai báo kiểu (`content: str`, `metadata: dict`, …), IDE và các công cụ tĩnh có thể kiểm tra lỗi kiểu, gợi ý tự động và cải thiện trải nghiệm lập trình.\n\n3. **Giảm boilerplate code**  \n   - Không cần viết tay các phương thức `__init__`, `__repr__`, `__eq__`… – `@dataclass` tự động sinh ra, giúp tập trung vào logic AI (xử lý dữ liệu, mô hình, inference) thay vì công việc lặp lại.\n\n4. **Dễ dàng mở rộng và bảo trì**  \n   - Khi cần thêm trường mới (ví dụ `token_count` cho tin nhắn chat), chỉ cần khai báo thêm một dòng trong lớp `ChatMessage`; các phương thức đã được sinh tự động sẽ tự cập nhật.\n\n5. **An toàn với mutable defaults**  \n   - Cảnh báo “The danger it prevents: all instances would share the same list.” nhấn mạnh rằng `@dataclass` cung cấp cơ chế `field(default_factory=…)` để tránh lỗi khi các trường mutable (list, dict) được dùng làm giá trị mặc định chung cho mọi instance.\n\n**Tóm lại**, `@dataclass` là công cụ chuẩn trong Python để định nghĩa các cấu trúc dữ liệu trong các dự án AI: nó tự động tạo các phương thức quan trọng, cung cấp kiểu tĩnh, ngăn ngừa lỗi mutable default, và giúp code ngắn gọn, dễ đọc và dễ bảo trì.",
+      "tokens": 1457,
+      "faithfulness": 0.81,
+      "relevance": 1.0,
+      "context_precision": 0.33
+    },
+    {
+      "question": "Sự khác biệt cốt lõi giữa Parent Chunking và Child Chunking trong chiến lược RAG là gì?",
+      "answer": "I cannot find enough information in the provided documents.",
+      "tokens": 412,
+      "faithfulness": 0.0,
+      "relevance": 0.0,
+      "context_precision": 0.0
+    },
+    {
+      "question": "Khoảng cách Cosine Similarity trong tìm kiếm vector dùng để đo lường điều gì giữa câu hỏi và đoạn văn bản?",
+      "answer": "Cosine Similarity đo góc (hoặc hướng) giữa hai vector – ở đây là vector biểu diễn câu hỏi và vector biểu diễn đoạn văn bản. Giá trị này cho biết mức độ **đồng nghĩa / ý nghĩa chung** của chúng:  \n\n- Giá trị ≈ 1 cho thấy hai vector cùng hướng, nghĩa là câu hỏi và đoạn văn bản có ý nghĩa rất giống nhau.  \n- Giá trị ≈ 0 cho thấy các vector vuông góc, tức là chúng không liên quan về mặt ngữ nghĩa.  \n- Giá trị ≈ ‑1 cho thấy hai vector hướng ngược nhau, nghĩa là chúng mang ý nghĩa trái ngược.\n\nVì vậy, trong tìm kiếm vector, Cosine Similarity được dùng để đo lường mức độ **tương đồng về nghĩa** giữa câu hỏi và đoạn văn bản.",
+      "tokens": 1680,
+      "faithfulness": 1.0,
+      "relevance": 1.0,
+      "context_precision": 0.33
+    },
+    {
+      "question": "Tại sao trong prompt của hệ thống RAG thường có chỉ dẫn: 'Answer based ONLY on the following context'?",
+      "answer": "Trong các prompt của hệ thống RAG, câu chỉ dẫn **“Answer based ONLY on the following context”** được đưa vào nhằm **ngăn ngừa hiện tượng hallucination** (tức là mô hình tạo ra câu trả lời dựa trên kiến thức nội bộ của mình thay vì dựa trên các đoạn văn đã được truy xuất). Khi có chỉ dẫn này, LLM sẽ bỏ qua kiến thức chung từ dữ liệu huấn luyện và chỉ sử dụng thông tin trong **context** mà chúng ta cung cấp, tránh việc trả lời sai hoặc đưa ra thông tin không có trong tài liệu riêng của công ty.",
+      "tokens": 941,
+      "faithfulness": 1.0,
+      "relevance": 1.0,
+      "context_precision": 1.0
+    },
+    {
+      "question": "Một pipeline RAG cơ bản gồm những giai đoạn xử lý tuần tự nào từ khi nhận câu hỏi đến khi trả lời?",
+      "answer": "Một pipeline RAG cơ bản thực hiện các bước sau theo thứ tự:\n\n1. **EMBED** – Nhúng (embed) câu hỏi của người dùng thành vector.  \n2. **SEARCH** – Dùng vector này để tìm kiếm trong VectorStore và lấy `top_k` đoạn (chunks) liên quan.  \n3. **BUILD** – Xây dựng prompt cho LLM, chèn các đoạn đã lấy được (các “context chunks”) vào prompt.  \n4. **CALL LLM** – Gọi mô hình ngôn ngữ (LLM) với prompt đã chuẩn bị, thường với nhiệt độ 0 để có câu trả lời nhất quán.  \n5. **RETURN** – Trả về câu trả lời cùng với các nguồn (sources) – danh sách các đoạn và điểm số của chúng, để người dùng hoặc hệ thống có thể kiểm chứng.\n\nNhư mô tả trong “The 5‑Stage Pipeline” của tài liệu, đây là chuỗi các biến đổi tuần tự từ khi nhận câu hỏi cho tới khi đưa ra câu trả lời có kèm nguồn.",
+      "tokens": 2122,
+      "faithfulness": 1.0,
+      "relevance": 1.0,
+      "context_precision": 0.67
+    },
+    {
+      "question": "Khi xây dựng prompt cho RAG, việc gắn nguồn trích dẫn (citations) kèm theo mỗi đoạn chunk mang lại lợi ích gì?",
+      "answer": "Việc gắn nguồn trích dẫn (citations) vào mỗi đoạn **chunk** khi xây dựng prompt cho RAG mang lại một số lợi ích thiết thực, được thể hiện trong các đoạn mã mẫu của tài liệu:\n\n1. **Cung cấp siêu dữ liệu nguồn cho mô hình**  \n   - Hàm `format_chunk` (tài liệu [2]) tạo ra chuỗi dạng  \n     ```\n     [1] (Source: <title>, <source>)\n     <content>\n     ```  \n     Nhờ có thông tin *title* và *source* (tên tài liệu, đường dẫn, v.v.), mô hình biết mỗi đoạn nội dung xuất phát từ đâu.\n\n2. **Tăng tính minh bạch và khả năng kiểm chứng**  \n   - Khi câu trả lời được sinh ra, mô hình có thể chỉ ra “đoạn [3]” hoặc “tài liệu X” là nguồn gốc của thông tin. Điều này giúp người dùng kiểm tra lại tính đúng đắn của câu trả lời và tin tưởng hơn vào kết quả.\n\n3. **Hỗ trợ việc trích dẫn trong câu trả lời**  \n   - Với nguồn đã được gắn sẵn trong phần *context*, mô hình có thể dễ dàng chèn các trích dẫn (ví dụ: “theo tài liệu A”) mà không cần phải “đoán” hoặc tạo ra thông tin không có căn cứ.\n\n4. **Cải thiện khả năng lựa chọn thông tin liên quan**  \n   - Khi các chunk được đánh số và gắn nguồn, mô hình có thể so sánh nhanh chóng các đoạn khác nhau và quyết định đoạn nào là phù hợp nhất cho câu hỏi, giảm thiểu việc “trộn lẫn” thông tin từ các tài liệu không liên quan.\n\n5. **Đáp ứng yêu cầu của prompt hệ thống**  \n   - Prompt hệ thống `RAG_SYSTEM_PROMPT` (tài liệu [3]) yêu cầu trả lời **“based ONLY on the following context”**. Khi mỗi đoạn trong *context* đã có nguồn, mô hình có thể tuân thủ yêu cầu này một cách rõ ràng, đồng thời tránh việc đưa ra thông tin ngoài phạm vi đã cung cấp.\n\nTóm lại, gắn nguồn trích dẫn vào mỗi chunk giúp mô hình:\n\n- Nắm rõ nguồn gốc của từng phần nội dung,\n- Trả lời có thể kiểm chứng và có thể chèn trích dẫn chính xác,\n- Tăng độ tin cậy và minh bạch cho người dùng,\n- Hỗ trợ việc lựa chọn và sắp xếp thông tin một cách có hệ thống.",
+      "tokens": 2250,
+      "faithfulness": 0.0,
+      "relevance": 0.0,
+      "context_precision": 0.67
+    },
+    {
+      "question": "Trong đánh giá hệ thống RAG, chỉ số Faithfulness (độ trung thực) đo lường điều gì?",
+      "answer": "Chỉ số **Faithfulness (độ trung thực)** đo lường **mức độ câu trả lời có được “đặt nền” trên nội dung đã truy xuất hay không** – tức là các khẳng định trong câu trả lời có được hỗ trợ, chứng minh bởi các đoạn văn (context) mà hệ thống RAG đã lấy về. Nếu mọi câu trong đáp án đều có bằng chứng trong context, Faithfulness sẽ cao; nếu có câu trả lời không có căn cứ trong context, chỉ số này sẽ giảm.",
+      "tokens": 1367,
+      "faithfulness": 1.0,
+      "relevance": 1.0,
+      "context_precision": 0.67
+    },
+    {
+      "question": "Tại sao khi sử dụng LLM làm giám khảo (LLM-as-a-judge) để chấm điểm Faithfulness, ta cần thiết lập temperature=0.0?",
+      "tokens": 1173,
+      "faithfulness": 0.0,
+      "relevance": 0.0,
+      "context_precision": 0.0
+    },
+    {
+      "question": "Giá cổ phiếu hiện tại của tập đoàn Microsoft trên sàn NASDAQ là bao nhiêu USD?",
+      "tokens": 477,
+      "faithfulness": 0.0,
+      "relevance": 0.0,
+      "context_precision": 0.0
+    },
+    {
+      "question": "Đội tuyển bóng đá quốc gia nào sẽ đăng cai tổ chức kỳ World Cup gần nhất sau năm 2026?",
+      "tokens": 411,
+      "faithfulness": 1.0,
+      "relevance": 0.0,
+      "context_precision": 0.0
+    },
+    {
+      "question": "Hướng dẫn chi tiết công thức nấu món phở bò truyền thống chuẩn vị Hà Nội?",
+      "tokens": 424,
+      "faithfulness": 0.0,
+      "relevance": 0.0,
+      "context_precision": 0.0
+    }
+  ]
+}
