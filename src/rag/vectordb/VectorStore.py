@@ -11,12 +11,14 @@ from src.rag.retrieval.bm25 import build_bm25_index,normalise_scores
 from src.rag.embeddings.embedding_helper import embed_tex,batch_embed_text
 from src.ingestion.chunking.Chunking_helper import loaddoc
 import os 
+from pathlib import Path
+
 from dotenv import load_dotenv
 load_dotenv()
 @dataclass
 class VectorStore(DocumentStore):
-    def add(self, doc: Document, subject: str = None, child_max: int = 600, child_overlap: int = 80) -> str:
-        doc_id = super().add(doc, subject, child_max=child_max, child_overlap=child_overlap)
+    def add(self, doc: Document, child_max: int = 300, child_overlap: int = 80) -> str:
+        doc_id = super().add(doc)
         chunks_to_embed = []
         chunk_ids = []
         for parent_id in self.parents_in_doc.get(doc_id, []):
@@ -44,17 +46,18 @@ class VectorStore(DocumentStore):
 
         query_embedding = embed_tex(query)
         results = []
+        course_filter = metadata.get('course') if metadata else None
+        doc_id_filter = metadata.get('doc_id') if metadata else None
 
         for chunk in self.child_chunks.values():
-            subject_filter = metadata.get('subject') if metadata else None
-            doc_id_filter = metadata.get('doc_id') if metadata else None
+            
 
-            if subject_filter:
-                if isinstance(subject_filter, list):
-                    if chunk.metadata.get('subject') not in subject_filter:
+            if course_filter:
+                if isinstance(course_filter, list):
+                    if chunk.metadata.get('course') not in course_filter:
                       continue
                 else:
-                    if chunk.metadata.get('subject') != subject_filter:
+                    if chunk.metadata.get('course') != course_filter:
                       continue
 
             if doc_id_filter:
@@ -84,17 +87,17 @@ class VectorStore(DocumentStore):
         query_embedding = embed_tex(query)
         dense_scores = []
 
-        subject_filter = metadata.get('subject') if metadata else None
+        course_filter = metadata.get('course') if metadata else None
         doc_id_filter = metadata.get('doc_id') if metadata else None
 
         for chunk in chunk_list:
             filtered_out = False
-            if subject_filter:
-                if isinstance(subject_filter, list):
-                    if chunk.metadata.get('subject') not in subject_filter:
+            if course_filter:
+                if isinstance(course_filter, list):
+                    if chunk.metadata.get('course') not in course_filter:
                         filtered_out = True
                 else:
-                    if chunk.metadata.get('subject') != subject_filter:
+                    if chunk.metadata.get('course') != course_filter:
                         filtered_out = True
 
             if doc_id_filter and not filtered_out:
@@ -149,29 +152,38 @@ class VectorStore(DocumentStore):
         return True
     @classmethod
     def load(cls, path: Optional[str] = None) -> VectorStore:
-        path = path or os.getenv("INDEX_SOURCE")
-        with open(path, "r", encoding="utf-8") as f:
-           data = json.load(f)
+        target_path = path or os.getenv("INDEX_SOURCE")
+        file_path = Path(target_path) if target_path else None
+
+        if not file_path or not file_path.exists() or file_path.stat().st_size == 0:
+           return cls()
+
+        try:
+            with open(file_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+        except (json.JSONDecodeError, Exception):
+            return cls()
 
         store = cls()
 
         store.documents = {
-          k: Document(**v)
-          for k, v in data.get("documents", {}).items()
+           k: Document(**v)
+           for k, v in data.get("documents", {}).items()
         }
 
         store.parent_chunks = {
-            k: ParentChunk(**v)
-            for k, v in data.get("parent_chunks", {}).items()
+           k: ParentChunk(**v)
+           for k, v in data.get("parent_chunks", {}).items()
         }
 
         store.child_chunks = {
             k: ChildChunk(**v)
-            for k, v in data.get("child_chunks", {}).items()
+           for k, v in data.get("child_chunks", {}).items()
         }
 
         store.parents_in_doc = data.get("parents_in_doc", {})
         store.children_in_parent = data.get("children_in_parent", {})
+    
         return store
     def clear_all(self) -> bool:
      try:
