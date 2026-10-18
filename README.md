@@ -10,16 +10,28 @@
 
 ---
 
-## 🛠️ 1. CÀI ĐẶT NHANH (QUICK SETUP)
+## 🛠️ 1. CÀI ĐẶT & THIẾT LẬP (SETUP)
 
+### Bước 1: Tạo & Kích hoạt môi trường ảo
 ```bash
-# 1. Cài đặt thư viện (khuyến nghị dùng uv)
-uv pip install -r requirements.txt
-# (Hoặc python thường: pip install -r requirements.txt)
+# 1. Tạo môi trường ảo:
+uv venv                       # Dùng uv (khuyến nghị - cực nhanh)
+python -m venv .venv          # Hoặc dùng Python thuần (3.11+)
 
-# 2. Cấu hình .env (mở .env điền API key)
-copy .env.example .env    # Windows
-cp .env.example .env      # Linux/macOS
+# 2. Kích hoạt môi trường ảo:
+.venv\Scripts\activate.bat    # Windows (Command Prompt - CMD của thầy)
+.\.venv\Scripts\Activate.ps1  # Windows (PowerShell)
+source .venv/bin/activate     # Linux / macOS
+```
+
+### Bước 2: Cài đặt thư viện & Cấu hình .env
+```bash
+# Cài đặt thư viện:
+uv pip install -r requirements.txt    # (Hoặc: pip install -r requirements.txt)
+
+# Cấu hình file môi trường (mở .env điền API key):
+copy .env.example .env                # Windows
+cp .env.example .env                  # Linux / macOS
 ```
 
 ---
