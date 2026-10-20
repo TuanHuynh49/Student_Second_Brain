@@ -23,7 +23,8 @@ logger = setup_logger()
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 RAW_DIR = PROJECT_ROOT / "data" / "raw"
-STORE_PATH = PROJECT_ROOT / "document_store_cache.json"
+_index_source = os.getenv("INDEX_SOURCE", "document_store_cache.json")
+STORE_PATH = Path(_index_source) if Path(_index_source).is_absolute() else PROJECT_ROOT / _index_source
 SUPPORTED_EXTENSIONS = {".txt", ".md"}
 
 
