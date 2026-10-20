@@ -85,7 +85,7 @@ class ResearchAgent:
 
 
 
-    async def research(self, query: str, top_k: int = 3) -> dict:
+    async def research(self, query: str, top_k: int = 3, metadata_filter: dict | None = None) -> dict:
         query = query.strip()
 
         if not query:
@@ -112,7 +112,8 @@ class ResearchAgent:
                 "search",
                 {
                     "query": query,
-                    "top_k": top_k
+                    "top_k": top_k,
+                    "metadata_filter": metadata_filter or {}
                 }
             )
 
