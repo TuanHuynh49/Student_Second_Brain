@@ -14,3 +14,6 @@ sentence-transformers>=3.0.0
 
 # Terminal UI & Formatting
 rich>=13.0.0
+
+# Evaluation, Data & Visualization
+matplotlib>=3.7.0

@@ -1,4 +1,4 @@
-.PHONY: setup demo eval
+.PHONY: setup demo eval plot
 
 setup:
 	pip install -r requirements.txt
@@ -8,3 +8,6 @@ demo:
 
 eval:
 	python -m tests.run_tests
+
+plot:
+	python -m src.evaluation.export_benchmark
