@@ -41,7 +41,7 @@ cp .env.example .env                  # Linux / macOS
 Chạy hệ thống bằng 1 dòng lệnh:
 ```bash
 uv run python main.py
-# (Hoặc không có uv: python main.py)
+# (Hoặc không có uv: python main.py | hoặc nhấp đúp run.bat)
 ```
 
 ---
@@ -83,6 +83,8 @@ Chạy tự động bộ kiểm thử 36 câu hỏi (`tests/testset.jsonl`), đo
 
 ```bash
 uv run python -m tests.run_tests
+# hoặc dùng lệnh Makefile
+make eval
 ```
 *(Hoặc không dùng `uv`: `python -m tests.run_tests`)*
 
@@ -95,6 +97,8 @@ Script tự động đọc file log `.jsonl` trong `logs/`, tính toán chi phí
 ```bash
 # Cách 1: Tự động chọn file log đầy đủ nhất
 uv run python -m src.evaluation.export_benchmark
+# hoặc
+make plot
 
 # Cách 2: Chỉ định một file log cụ thể
 uv run python -m src.evaluation.export_benchmark run_20261017_222106_5e6c6a.jsonl
@@ -147,6 +151,8 @@ Student_Second_Brain/
 ├── .env.example                # Bản mẫu cấu hình an toàn (không chứa key bí mật)
 ├── .gitignore                  # Cấu hình bảo mật, chặn lộ key .env
 ├── ai-usage.md                 # Bản khai báo sử dụng AI theo chuẩn liêm chính học thuật
+├── Makefile                    # Lệnh make setup, make demo, make eval
+├── run.bat                     # File kích hoạt chạy nhanh 1-click trên Windows
 ├── main.py                     # Điểm khởi chạy chính thức của hệ thống
 └── README.md                   # Hướng dẫn chi tiết sử dụng và vận hành
 ```
