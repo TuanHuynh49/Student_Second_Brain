@@ -3,9 +3,9 @@ import asyncio
 
 from mcp import Client, StdioServerParameters
 
-# ============================================================
+ 
 # 1. HELPER: IN KET QUA
-# ============================================================
+ 
 
 def print_result(test_name: str, result) -> None:
     print("\n" + "=" * 70)
@@ -22,9 +22,9 @@ def print_result(test_name: str, result) -> None:
         print("No content returned.")
 
 
-# ============================================================
+ 
 # 2. GOI TOOL
-# ============================================================
+ 
 
 async def call_and_print(client, tool_name: str, arguments: dict, test_name: str):
     result = await client.call_tool(tool_name, arguments)
@@ -32,9 +32,9 @@ async def call_and_print(client, tool_name: str, arguments: dict, test_name: str
     return result
 
 
-# ============================================================
+ 
 # 3. MAIN TEST
-# ============================================================
+ 
 
 async def main():
     server = StdioServerParameters(
@@ -44,9 +44,9 @@ async def main():
 
     async with Client(server) as client:
 
-        # ----------------------------------------------------
+         
         # TEST 1: DISCOVER TOOLS
-        # ----------------------------------------------------
+         
 
         tools = (await client.list_tools()).tools
 
@@ -69,9 +69,9 @@ async def main():
         # ID lấy từ document_store_cache.json của bạn
         doc_id = "doc_test"
 
-        # ----------------------------------------------------
+         
         # TEST 2: SEARCH
-        # ----------------------------------------------------
+         
 
         await call_and_print(
             client,
@@ -83,9 +83,9 @@ async def main():
             "1. SEARCH - normal query",
         )
 
-        # ----------------------------------------------------
+         
         # TEST 3: GET EXISTING DOCUMENT
-        # ----------------------------------------------------
+         
 
         await call_and_print(
             client,
@@ -96,9 +96,9 @@ async def main():
             "2. GET - existing document",
         )
 
-        # ----------------------------------------------------
+         
         # TEST 4: GET NONEXISTENT DOCUMENT
-        # ----------------------------------------------------
+         
 
         await call_and_print(
             client,
@@ -109,9 +109,9 @@ async def main():
             "3. GET - nonexistent document",
         )
 
-        # ----------------------------------------------------
+         
         # TEST 5: SEARCH WITH EMPTY QUERY
-        # ----------------------------------------------------
+         
 
         await call_and_print(
             client,
@@ -123,9 +123,9 @@ async def main():
             "4. SEARCH - empty query",
         )
 
-        # ----------------------------------------------------
+         
         # TEST 6: GET WITH EMPTY ID
-        # ----------------------------------------------------
+         
 
         await call_and_print(
             client,
@@ -136,9 +136,9 @@ async def main():
             "5. GET - empty document ID",
         )
 
-        # ----------------------------------------------------
+         
         # TEST 7: UPDATE WITH NONEXISTENT ID
-        # ----------------------------------------------------
+         
 
         await call_and_print(
             client,
@@ -150,9 +150,9 @@ async def main():
             "6. UPDATE - nonexistent document",
         )
 
-        # ----------------------------------------------------
+         
         # TEST 8: UPDATE WITH EMPTY CONTENT
-        # ----------------------------------------------------
+         
 
         await call_and_print(
             client,
@@ -164,9 +164,9 @@ async def main():
             "7. UPDATE - empty content",
         )
 
-        # ----------------------------------------------------
+         
         # TEST 9: OPTIONAL UPDATE REAL DOCUMENT
-        # ----------------------------------------------------
+         
 
         print("\n" + "=" * 70)
         print("OPTIONAL TEST: UPDATE REAL DOCUMENT")
