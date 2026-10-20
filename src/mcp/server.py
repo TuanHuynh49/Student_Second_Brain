@@ -23,7 +23,7 @@ logger = setup_logger()
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 RAW_DIR = PROJECT_ROOT / "data" / "raw"
-STORE_PATH = PROJECT_ROOT / "document_store_cache.json"
+STORE_PATH = PROJECT_ROOT /"data" / "index" /"document_store_cache.json"
 SUPPORTED_EXTENSIONS = {".txt", ".md"}
 
 
