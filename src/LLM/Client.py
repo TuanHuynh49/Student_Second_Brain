@@ -143,34 +143,3 @@ def call_llm_stream(message, tools = None):
             wait = 5 * (attempt + 1)
             print(f"[llm-stream] HTTP {status or type(exc).__name__} - thử lại sau {wait}s...")
             time.sleep(wait)
-
-
-if __name__ == "__main__":
-    test_messages = [
-        {"role": "user", "content": "Chào bạn, hãy giới thiệu ngắn gọn trong 1 câu bạn là ai?"}
-    ]
-    print("⏳ Đang gửi yêu cầu kiểm tra tới LLM...")
-    reply = call_llm(test_messages)
-    print("\n✅ Phản hồi từ AI:")
-    print(reply.content)
-    print("\n📊 Thống kê Token USAGE:")
-    print(USAGE)
-    print("\n" + "=" * 50)
-    print("🌊 TEST STREAMING (Chữ chạy ra từng từ):")
-    stream_msgs = [
-        {"role": "user", "content": "Hãy đếm từ 1 đến 5 và giải thích ngắn gọn vì sao nên học môn AI."}
-    ]
-    print("AI: ", end="", flush=True)
-    for token in call_llm_stream(stream_msgs):
-        print(token, end="", flush=True)
-        time.sleep(0.03)  # Tạo hiệu ứng gõ phím mượt mà
-    print("\n")
-
-
-
-
-
-
-
-
-

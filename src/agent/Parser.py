@@ -54,38 +54,3 @@ def parse_react_response(text: str) -> Tuple[Optional[str], Optional[Dict[str, A
 
     return None, None, text.strip()
 
-if __name__ == "__main__":
-    print("--- Test 1: AI trả về Markdown chứa JSON ---")
-    mock_llm_output_1 = """
-    Tôi sẽ lưu ghi chú này cho bạn.
-    ```json
-    {
-        "topic": "Học máy",
-        "content": "Hồi quy tuyến tính"
-    }
-    ```
-    """
-    parsed_json = safe_extract_json(mock_llm_output_1)
-    print("Kết quả trích xuất JSON:", parsed_json)
-
-    print("\n--- Test 2: AI trả về dạng ReAct (Action / Action Input) ---")
-    mock_llm_output_2 = """
-    Thought: Cần tra cứu tài liệu về RAG.
-    Action: search_notes
-    Action Input: {"query": "RAG pipeline"}
-    """
-    action, args, answer = parse_react_response(mock_llm_output_2)
-    print(f"Action: {action}")
-    print(f"Args: {args}")
-    print(f"Final Answer: {answer}")
-
-    print("\n--- Test 3: AI trả về Final Answer ---")
-    mock_llm_output_3 = """
-    Thought: Đã hoàn tất việc kiểm chứng.
-    Final Answer: Ghi chú mã NOTE_1 đã được lưu vào hệ thống thành công!
-    """
-    action, args, answer = parse_react_response(mock_llm_output_3)
-    print(f"Action: {action}")
-    print(f"Args: {args}")
-    print(f"Final Answer: {answer}")
-
