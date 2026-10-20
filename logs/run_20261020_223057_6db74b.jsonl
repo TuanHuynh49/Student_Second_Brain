@@ -1,0 +1,5 @@
+{"timestamp": "2026-10-20T22:30:57.941853+07:00", "run_id": "run_20261020_223057_6db74b", "event": "run_started", "log_file": "run_20261020_223057_6db74b.jsonl"}
+{"timestamp": "2026-10-20T22:30:57.943513+07:00", "run_id": "run_20261020_223057_6db74b", "event": "application_started"}
+{"timestamp": "2026-10-20T22:31:16.252287+07:00", "run_id": "run_20261020_223057_6db74b", "event": "mcp_tools_discovered", "tools": [{"name": "search", "description": "\nTìm kiếm tài liệu, hỗ trợ filter theo course và doc_id.\n"}, {"name": "get", "description": "\nLấy toàn bộ nội dung của một tài liệu theo Document ID.\n"}, {"name": "update", "description": "\nCập nhật nội dung file TXT và đồng bộ lại VectorStore/cache.\n"}], "tool_count": 3}
+{"timestamp": "2026-10-20T22:35:23.761459+07:00", "run_id": "run_20261020_223057_6db74b", "event": "application_exit_requested"}
+{"timestamp": "2026-10-20T22:35:25.258263+07:00", "run_id": "run_20261020_223057_6db74b", "event": "run_finished", "status": "completed"}

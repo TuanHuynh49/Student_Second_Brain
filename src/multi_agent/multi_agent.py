@@ -17,7 +17,7 @@ class MultiAgentSystem:
         # Tổng số lượt tìm kiếm tối đa, tính cả lượt đầu.
         self.max_attempts = max(1, max_attempts)
 
-    async def run(self,user_query: str,decision: dict | None = None) -> dict:
+    async def run(self,user_query: str,decision: dict | None = None, metadata_filter: dict | None = None) -> dict:
         user_query = user_query.strip()
 
         if not user_query:
@@ -27,6 +27,13 @@ class MultiAgentSystem:
             decision = self.coordinator.decide(user_query)
             print("\n[Coordinator] Intent:", decision["intent"])
             print("[Coordinator] Reason:", decision["reason"])
+
+        if metadata_filter is None:
+            metadata_filter = decision.get("metadata_filter", {})
+
+        metadata_filter = metadata_filter or {}
+
+        print("[MultiAgentSystem] Metadata filter:", metadata_filter)
 
         research_result = None
         evidence_check = None
@@ -52,7 +59,8 @@ class MultiAgentSystem:
 
                 # 1. Coordinator -> Research Agent
                 research_result = await self.researcher.research(
-                    current_query
+                    current_query,
+                    metadata_filter=metadata_filter
                 )
 
                 status = research_result.get("status")

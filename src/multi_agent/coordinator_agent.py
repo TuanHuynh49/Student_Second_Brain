@@ -41,16 +41,31 @@ Các intent:
    CHỈ sử dụng cho các tương tác chào hỏi xã giao thuần túy (ví dụ: 'xin chào', 'hello', 'bạn là ai', 'bạn có thể làm gì'), lời cảm ơn hoặc tạm biệt. TUYỆT ĐỐI KHÔNG chọn `general_question` cho các câu hỏi chứa nội dung học thuật, kiến thức hoặc câu hỏi thực chất.
 
 Quy tắc:
-- Chỉ chọn đúng một intent trong ba intent trên.
+- Chỉ chọn đúng một intent trong ba intent đã định nghĩa.
 - Dựa vào mục đích thực sự của yêu cầu để phân loại.
 - Không tự ý trả lời câu hỏi của người dùng.
 - Không thực hiện công cụ trong bước phân loại.
 - Trường `query` phải chứa câu truy vấn phù hợp để xử lý yêu cầu. Với `search_documents`, tạo query phục vụ tìm kiếm tài liệu. Với hai intent còn lại, giữ nội dung yêu cầu gốc hoặc tạo query phù hợp với yêu cầu.
-- Chỉ trả về JSON hợp lệ theo cấu trúc:
+- Với intent `search_documents`, trích xuất các điều kiện metadata mà người dùng nêu rõ trong câu hỏi.
+- Các trường metadata được hỗ trợ gồm `course`, `doc_id` và `source`.
+- Chỉ trích xuất giá trị được người dùng nêu rõ. Không tự suy đoán hoặc tự đặt giá trị metadata.
+- Chỉ đưa vào `metadata_filter` những trường metadata có điều kiện cụ thể. Nếu người dùng không nêu điều kiện metadata nào, trả về `{}`.
+- `metadata_filter` phải là JSON object hợp lệ.
+- Với intent `react_tools` hoặc `general_question`, đặt `metadata_filter` là `{}`.
+- Chỉ trả về JSON hợp lệ, không thêm Markdown, lời giải thích hoặc văn bản bên ngoài JSON.
 
-{"intent": "search_documents", 
-"reason": "Giải thích ngắn gọn lý do phân loại", 
-"query": "Nội dung truy vấn"}
+Cấu trúc JSON đầu ra:
+
+{
+  "intent": "search_documents",
+  "reason": "Giải thích ngắn gọn lý do phân loại",
+  "query": "Nội dung truy vấn",
+  "metadata_filter": {
+    "course": "Tên course nếu người dùng nêu rõ",
+    "doc_id": "ID tài liệu nếu người dùng nêu rõ",
+    "source": "Nguồn tài liệu nếu người dùng nêu rõ"
+  }
+vô systemprompt của decide
 """
                 },
                 {
@@ -66,6 +81,13 @@ Quy tắc:
             raise ValueError("Coordinator không trả về kết quả.")
 
         result = json.loads(content)
+
+        metadata_filter = result.get("metadata_filter", {})
+
+        if not isinstance(metadata_filter, dict):
+            raise ValueError("Trường metadata_filter không hợp lệ.")
+
+        result["metadata_filter"] = metadata_filter
 
         allowed_intents = {
             "search_documents",
