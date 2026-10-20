@@ -14,7 +14,6 @@ MODEL = os.getenv(
     "MODEL", "gpt-6.1-sol"
 )
 
-MAX_TOKENS = int(os.getenv("MAX_TOKENS", "0"))
 RETRIES = int(os.getenv("LLM_RETRIES", "4"))
 RETRY_STATUS ={429, 500, 502, 503, 504}
 
@@ -86,8 +85,6 @@ def call_llm(messages, tools=None):
         "temperature": 0
     }
 
-    if MAX_TOKENS:
-        kwargs["max_tokens"] = MAX_TOKENS
     if tools:
         kwargs["tools"] = tools
 
@@ -118,28 +115,37 @@ def call_llm(messages, tools=None):
 
     return response.choices[0].message
 
-def call_llm_stream(message, tools = None):
-    kwargs = {
-        "model": MODEL,
-        "messages": message,
-        "temperature": 0,
-        "stream": True
-    }
-    if MAX_TOKENS:
-        kwargs["max_tokens"] = MAX_TOKENS
-    if tools:
-        kwargs["tools"] = tools
-    for attempt in range(RETRIES):
-        try:
-            stream_response = client.chat.completions.create(**kwargs)
-            for chunk in stream_response:
-                if chunk.choices and chunk.choices[0].delta.content:
-                    yield chunk.choices[0].delta.content
-            break
-        except Exception as exc:
-            status = getattr(exc, "status_code", None)
-            if attempt == RETRIES - 1 or (status is not None and status not in RETRY_STATUS):
-                raise
-            wait = 5 * (attempt + 1)
-            print(f"[llm-stream] HTTP {status or type(exc).__name__} - thử lại sau {wait}s...")
-            time.sleep(wait)
+# def call_llm_stream(messages, tools=None):
+#     kwargs = {
+#         "model": MODEL,
+#         "messages": messages,
+#         "temperature": 0,
+#         "stream": True,
+#         "stream_options": {"include_usage": True}
+#     }
+#     if MAX_TOKENS:
+#         kwargs["max_tokens"] = MAX_TOKENS
+#     if tools:
+#         kwargs["tools"] = tools
+#     for attempt in range(RETRIES):
+#         try:
+#             stream_response = client.chat.completions.create(**kwargs)
+#             for chunk in stream_response:
+#                 if chunk.choices and chunk.choices[0].delta.content:
+#                     yield chunk.choices[0].delta.content
+#                 if hasattr(chunk, "usage") and chunk.usage:
+#                     prompt_tokens = chunk.usage.prompt_tokens
+#                     completion_tokens = chunk.usage.completion_tokens
+#                     USAGE["calls"] += 1
+#                     USAGE["prompt_tokens"] += prompt_tokens
+#                     USAGE["completion_tokens"] += completion_tokens
+#                     USAGE["max_prompt"] = max(USAGE["max_prompt"], prompt_tokens)
+#                     USAGE["cost_usd"] = get_cost_usd()
+#             break
+#         except Exception as exc:
+#             status = getattr(exc, "status_code", None)
+#             if attempt == RETRIES - 1 or (status is not None and status not in RETRY_STATUS):
+#                 raise
+#             wait = 5 * (attempt + 1)
+#             print(f"[llm-stream] HTTP {status or type(exc).__name__} - thử lại sau {wait}s...")
+#             time.sleep(wait)

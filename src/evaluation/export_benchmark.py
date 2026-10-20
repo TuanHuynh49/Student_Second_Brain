@@ -22,9 +22,9 @@ INPUT_PRICE = float(os.getenv("INPUT_PRICE_PER_MILLION", "2.0"))
 OUTPUT_PRICE = float(os.getenv("OUTPUT_PRICE_PER_MILLION", "10.0"))
 
 
-# ============================================================
+ 
 # BƯỚC 1: ĐỌC DỮ LIỆU TỪ FILE LOG JSONL
-# ============================================================
+ 
 def load_log_data(log_file=None):
     """Đọc dữ liệu câu hỏi và token từ file log JSONL."""
     if log_file:
@@ -96,9 +96,9 @@ def load_log_data(log_file=None):
     return file_path.name, sorted_rows
 
 
-# ============================================================
+ 
 # BƯỚC 2: XUẤT RA FILE BẢNG CSV
-# ============================================================
+ 
 def export_csv(rows, output_file):
     """Xuất kết quả từng câu ra bảng CSV để mở bằng Excel."""
     headers = [
@@ -132,9 +132,9 @@ def export_csv(rows, output_file):
     print(f"✅ Đã xuất bảng CSV: {output_file.name}")
 
 
-# ============================================================
+ 
 # BƯỚC 3: VẼ BIỂU ĐỒ BẰNG MATPLOTLIB
-# ============================================================
+ 
 def draw_chart(rows, output_file):
     """Vẽ biểu đồ cột thống kê token từng câu (Stacked Bar Chart)."""
     try:
@@ -181,9 +181,9 @@ def draw_chart(rows, output_file):
         print("ℹ️  Gợi ý: Cài matplotlib (`pip install matplotlib`) để lưu biểu đồ ảnh.")
 
 
-# ============================================================
+ 
 # HÀM CHÍNH (MAIN)
-# ============================================================
+ 
 def main():
     print("\n--- XUẤT CSV VÀ VẼ ĐỒ THỊ BENCHMARK ---")
 
